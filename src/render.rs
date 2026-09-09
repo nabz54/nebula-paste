@@ -1,0 +1,63 @@
+//! Render the actual widget tree to PNG, without a window server or clipboard.
+use cosmic::{
+    Application,
+    iced::{
+        self, Rectangle, Size,
+        advanced::{
+            Layout,
+            renderer::{Headless, Renderer as _},
+            widget::Tree,
+        },
+        mouse,
+    },
+};
+pub fn preview(path: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let (mut app, _) = crate::app::App::init(cosmic::Core::default(), crate::app::Mode::Preview);
+    if std::env::args().nth(3).as_deref() == Some("detail") {
+        let id = crate::demo::clips()[0].id.clone();
+        let _ = app.update(crate::app::Message::Detail(Some(id)));
+    }
+    if std::env::args().nth(3).as_deref() == Some("full") {
+        app.expand_demo();
+    }
+    let mut view = app.view();
+    let mut renderer = iced::futures::executor::block_on(<cosmic::Renderer as Headless>::new(
+        iced::Font::DEFAULT,
+        iced::Pixels(14.0),
+        Some("tiny-skia"),
+    ))
+    .ok_or("Renderer unavailable")?;
+    let mut tree = Tree::new(&view);
+    let limits = iced::advanced::layout::Limits::new(Size::ZERO, Size::new(940.0, 850.0));
+    let node = view.as_widget_mut().layout(&mut tree, &renderer, &limits);
+    let size = node.size();
+    let bounds = Rectangle::with_size(size);
+    renderer.reset(bounds);
+    view.as_widget().draw(
+        &tree,
+        &mut renderer,
+        &cosmic::Theme::dark(),
+        &iced::advanced::renderer::Style {
+            text_color: crate::skin::TEXT,
+            icon_color: crate::skin::TEXT,
+            scale_factor: 1.0,
+        },
+        Layout::new(&node),
+        mouse::Cursor::Unavailable,
+        &bounds,
+    );
+    let pixels = renderer.screenshot(
+        Size::new(size.width.ceil() as u32, size.height.ceil() as u32),
+        1.0,
+        crate::skin::BG,
+    );
+    image::save_buffer(
+        path,
+        &pixels,
+        size.width.ceil() as u32,
+        size.height.ceil() as u32,
+        image::ColorType::Rgba8,
+    )?;
+    println!("Rendered {} × {} to {path}", size.width, size.height);
+    Ok(())
+}

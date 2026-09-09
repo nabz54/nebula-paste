@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=Nebula Paste
+Comment=Presse-papiers visuel : historique, recherche et favoris
+Type=Application
+Icon=io.github.nebulapaste.NebulaPaste
+Exec=nebula-paste
+Terminal=false
+StartupNotify=true
+Categories=COSMIC;Utility;
+Keywords=Clipboard;Presse-papiers;History;
+NoDisplay=true
+X-CosmicApplet=true
+X-CosmicHoverPopup=Auto

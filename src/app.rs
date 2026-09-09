@@ -490,19 +490,19 @@ impl cosmic::Application for App {
             .icon_button(if self.monitor.paused() {
                 "media-playback-pause-symbolic"
             } else {
-                "edit-paste-symbolic"
+                "io.github.nebulapaste.NebulaPaste-symbolic"
             })
             .on_press(Message::Toggle)
             .into()
     }
     fn view_window(&self, _: Id) -> Element<'_, Message> {
         let title = widget::row([])
-            .push(skin::icon("edit-paste-symbolic").icon().size(20))
+            .push(skin::brand_icon().icon().size(40))
             .push(
                 widget::column([])
                     .push(widget::text("Nebula Paste").size(23).class(skin::TEXT))
                     .push(
-                        widget::text("Tes idées, toujours à portée de main.")
+                        widget::text("Copiez. Retrouvez. Créez.")
                             .size(12)
                             .class(skin::MUTED),
                     )

@@ -21,6 +21,7 @@ install -Dm644 LICENSE "$data_dir/licenses/nebula-paste/Nebula-Paste-MPL-2.0.txt
 install -Dm644 vendor/README.md "$data_dir/licenses/nebula-paste/THIRD-PARTY.md"
 install -Dm644 resources/io.github.nebulapaste.NebulaPaste.svg "$data_dir/icons/hicolor/scalable/apps/io.github.nebulapaste.NebulaPaste.svg"
 install -Dm644 resources/io.github.nebulapaste.NebulaPaste.desktop "$data_dir/applications/io.github.nebulapaste.NebulaPaste.desktop"
+install -Dm644 resources/io.github.nebulapaste.NebulaPaste-symbolic.svg "$data_dir/icons/hicolor/scalable/apps/io.github.nebulapaste.NebulaPaste-symbolic.svg"
 # A desktop entry uses its own escaping, not shell quoting.
 desktop_exec="$HOME/.local/bin/nebula-paste"
 desktop_exec="${desktop_exec//\\/\\\\}"

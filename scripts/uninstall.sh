@@ -2,6 +2,7 @@
 set -euo pipefail
 data_dir="${XDG_DATA_HOME:-$HOME/.local/share}"
 rm -f -- "$HOME/.local/bin/nebula-paste" "$data_dir/applications/io.github.nebulapaste.NebulaPaste.desktop" "$data_dir/icons/hicolor/scalable/apps/io.github.nebulapaste.NebulaPaste.svg"
+rm -f -- "$data_dir/icons/hicolor/scalable/apps/io.github.nebulapaste.NebulaPaste-symbolic.svg"
 for license in Tesseract-Apache-2.0.txt Leptonica-BSD.txt tessdata_fast-Apache-2.0.txt Nebula-Paste-MPL-2.0.txt THIRD-PARTY.md; do
     rm -f -- "$data_dir/licenses/nebula-paste/$license"
 done

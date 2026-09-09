@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+<defs><symbol id="brand" viewBox="0 0 128 128"><defs><linearGradient id="sheet" x1="0" y1="0" x2="0.8" y2="1"><stop stop-color="#d8caff"/><stop offset="1" stop-color="#9b87ed"/></linearGradient></defs>
+<rect x="20" y="28" width="68" height="86" rx="16" fill="#443c72"/>
+<rect x="36" y="12" width="68" height="86" rx="16" fill="url(#sheet)"/>
+<path d="M53 43h29M53 57h29M53 71h17" fill="none" stroke="#393251" stroke-width="6" stroke-linecap="round"/>
+<path d="m101 70 6 15 15 6-15 6-6 15-6-15-15-6 15-6z" fill="#17252f" stroke="#17252f" stroke-width="8" stroke-linejoin="round"/>
+<path d="m101 70 6 15 15 6-15 6-6 15-6-15-15-6 15-6z" fill="#73dfd3"/>
+</symbol><symbol id="mono" viewBox="0 0 24 24"><g fill="none" stroke="#edf2fa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7H4v14h11v-2M9 3h10v10M9 3v14h4"/><path d="m18 13 1.5 3.5L23 18l-3.5 1.5L18 23l-1.5-3.5L13 18l3.5-1.5z" fill="#edf2fa" stroke="none"/></g></symbol></defs>
+<rect width="1200" height="800" rx="24" fill="#10141b"/>
+<text x="56" y="54" fill="#73dfd3" font-family="DejaVu Sans,sans-serif" font-size="13" font-weight="700">NEBULA PASTE / IDENTITÉ 0.5</text>
+<text x="56" y="124" fill="#f0f3fa" font-family="DejaVu Sans,sans-serif" font-size="54" font-weight="700">Copiez.</text>
+<text x="56" y="186" fill="#f0f3fa" font-family="DejaVu Sans,sans-serif" font-size="54" font-weight="700">Retrouvez. Créez.</text>
+<text x="58" y="229" fill="#abb7c9" font-family="DejaVu Sans,sans-serif" font-size="19" font-weight="400">Un espace calme pour tout ce que vous copiez.</text>
+<text x="58" y="266" fill="#abb7c9" font-family="DejaVu Sans,sans-serif" font-size="14" font-weight="400">Presse-papiers natif pour COSMIC · Rust · OCR local</text>
+<rect x="836" y="54" width="308" height="264" rx="28" fill="#1a2029" stroke="#353f4d"/>
+<use href="#brand" x="912" y="76" width="156" height="156"/>
+<text x="908" y="277" fill="#f0f3fa" font-family="DejaVu Sans,sans-serif" font-size="23" font-weight="700">Nebula Paste</text>
+<text x="56" y="347" fill="#abb7c9" font-family="DejaVu Sans,sans-serif" font-size="13" font-weight="700">01  /  UNE PALETTE UTILE</text>
+<rect x="56" y="371" width="132" height="62" rx="12" fill="#10141b" stroke="#353f4d"/>
+<text x="56" y="458" fill="#f0f3fa" font-family="DejaVu Sans,sans-serif" font-size="14" font-weight="400">Nuit</text>
+<text x="56" y="483" fill="#abb7c9" font-family="DejaVu Sans,sans-serif" font-size="12" font-weight="400">#10141B</text>
+<rect x="204" y="371" width="132" height="62" rx="12" fill="#1a2029" stroke="#353f4d"/>
+<text x="204" y="458" fill="#f0f3fa" font-family="DejaVu Sans,sans-serif" font-size="14" font-weight="400">Surface</text>
+<text x="204" y="483" fill="#abb7c9" font-family="DejaVu Sans,sans-serif" font-size="12" font-weight="400">#1A2029</text>
+<rect x="352" y="371" width="132" height="62" rx="12" fill="#73dfd3" stroke="#353f4d"/>
+<text x="352" y="458" fill="#f0f3fa" font-family="DejaVu Sans,sans-serif" font-size="14" font-weight="400">Interaction</text>
+<text x="352" y="483" fill="#abb7c9" font-family="DejaVu Sans,sans-serif" font-size="12" font-weight="400">#73DFD3</text>
+<rect x="500" y="371" width="132" height="62" rx="12" fill="#bca5f5" stroke="#353f4d"/>
+<text x="500" y="458" fill="#f0f3fa" font-family="DejaVu Sans,sans-serif" font-size="14" font-weight="400">Signature</text>
+<text x="500" y="483" fill="#abb7c9" font-family="DejaVu Sans,sans-serif" font-size="12" font-weight="400">#BCA5F5</text>
+<rect x="648" y="371" width="132" height="62" rx="12" fill="#f0f3fa" stroke="#353f4d"/>
+<text x="648" y="458" fill="#f0f3fa" font-family="DejaVu Sans,sans-serif" font-size="14" font-weight="400">Texte</text>
+<text x="648" y="483" fill="#abb7c9" font-family="DejaVu Sans,sans-serif" font-size="12" font-weight="400">#F0F3FA</text>
+<text x="856" y="347" fill="#abb7c9" font-family="DejaVu Sans,sans-serif" font-size="13" font-weight="700">02  /  DANS LE PANNEAU</text>
+<rect x="840" y="371" width="304" height="76" rx="14" fill="#1a2029" stroke="none"/>
+<use href="#mono" x="868" y="401.0" width="16" height="16"/>
+<use href="#mono" x="935" y="397.0" width="24" height="24"/>
+<use href="#mono" x="1010" y="393.0" width="32" height="32"/>
+<text x="856" y="482" fill="#abb7c9" font-family="DejaVu Sans,sans-serif" font-size="12" font-weight="400">16, 24 et 32 px · variante symbolique</text>
+<text x="56" y="547" fill="#abb7c9" font-family="DejaVu Sans,sans-serif" font-size="13" font-weight="700">03  /  ÉTATS D’INTERACTION</text>
+<rect x="56" y="572" width="344" height="136" rx="16" fill="#1a2029" stroke="#353f4d"/>
+<text x="78" y="609" fill="#73dfd3" font-family="DejaVu Sans,sans-serif" font-size="11" font-weight="700">TEXTE</text>
+<text x="78" y="645" fill="#f0f3fa" font-family="DejaVu Sans,sans-serif" font-size="24" font-weight="700">Au repos</text>
+<text x="78" y="679" fill="#abb7c9" font-family="DejaVu Sans,sans-serif" font-size="14" font-weight="400">Contenu lisible</text>
+<rect x="428" y="572" width="344" height="136" rx="16" fill="#27313e" stroke="#353f4d"/>
+<text x="450" y="609" fill="#73dfd3" font-family="DejaVu Sans,sans-serif" font-size="11" font-weight="700">TEXTE</text>
+<text x="450" y="645" fill="#f0f3fa" font-family="DejaVu Sans,sans-serif" font-size="24" font-weight="700">Au survol</text>
+<text x="450" y="679" fill="#abb7c9" font-family="DejaVu Sans,sans-serif" font-size="14" font-weight="400">Surface éclaircie</text>
+<rect x="800" y="572" width="344" height="136" rx="16" fill="#1a3236" stroke="#73dfd3"/>
+<text x="822" y="609" fill="#73dfd3" font-family="DejaVu Sans,sans-serif" font-size="11" font-weight="700">TEXTE</text>
+<text x="822" y="645" fill="#f0f3fa" font-family="DejaVu Sans,sans-serif" font-size="24" font-weight="700">Sélection</text>
+<text x="822" y="679" fill="#abb7c9" font-family="DejaVu Sans,sans-serif" font-size="14" font-weight="400">Fond teinté + contour</text>
+<text x="56" y="757" fill="#abb7c9" font-family="DejaVu Sans,sans-serif" font-size="12" font-weight="400">Planche de direction artistique — composants illustrés, pas une capture de l’application.</text>
+</svg>

@@ -3,13 +3,21 @@ use cosmic::{
     iced::{Border, Color},
     theme, widget,
 };
-pub const BG: Color = Color::from_rgb(0.055, 0.063, 0.09);
-pub const CARD: Color = Color::from_rgb(0.102, 0.118, 0.16);
-pub const PREVIEW: Color = Color::from_rgb(0.071, 0.086, 0.125);
-pub const LINE: Color = Color::from_rgb(0.22, 0.23, 0.25);
-pub const TEXT: Color = Color::from_rgb(0.94, 0.94, 0.96);
-pub const MUTED: Color = Color::from_rgb(0.62, 0.64, 0.69);
-pub const ACCENT: Color = Color::from_rgb(0.69, 0.64, 1.0);
+// Nebula 0.5: quiet slate surfaces, cyan interaction, violet identity.
+pub const BG: Color = Color::from_rgb(0.063, 0.078, 0.106);
+pub const CARD: Color = Color::from_rgb(0.102, 0.125, 0.161);
+pub const PREVIEW: Color = Color::from_rgb(0.078, 0.094, 0.125);
+pub const LINE: Color = Color::from_rgb(0.208, 0.247, 0.302);
+pub const TEXT: Color = Color::from_rgb(0.941, 0.953, 0.980);
+pub const MUTED: Color = Color::from_rgb(0.671, 0.718, 0.788);
+pub const ACCENT: Color = Color::from_rgb(0.451, 0.875, 0.827);
+pub const SELECTED: Color = Color::from_rgb(0.102, 0.196, 0.212);
+pub const HOVER: Color = Color::from_rgb(0.153, 0.192, 0.243);
+pub fn brand_icon() -> widget::icon::Handle {
+    widget::icon::from_svg_bytes(
+        include_bytes!("../resources/io.github.nebulapaste.NebulaPaste.svg").to_vec(),
+    )
+}
 pub fn surface(color: Color, radius: f32, border: Color) -> theme::Container<'static> {
     theme::Container::custom(move |_| cosmic::iced::widget::container::Style {
         background: Some(color.into()),
@@ -27,8 +35,10 @@ pub fn button(selected: bool, radius: f32, card: bool) -> theme::Button {
     let style = move |hover: bool, focus: bool| widget::button::Style {
         background: Some(
             (if hover {
-                Color::from_rgb(0.18, 0.185, 0.21)
-            } else if card || selected {
+                HOVER
+            } else if selected {
+                SELECTED
+            } else if card {
                 CARD
             } else {
                 BG

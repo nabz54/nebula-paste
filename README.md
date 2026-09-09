@@ -1,8 +1,10 @@
 # Nebula Paste — applet pour COSMIC
 
-Un gestionnaire de presse-papiers natif, écrit en Rust avec **libcosmic**, inspiré de l’organisation visuelle de [Supaste](https://www.supaste.com/). Version **0.4.0**. Projet indépendant, sans affiliation à Supaste ou System76.
+Un gestionnaire de presse-papiers natif, écrit en Rust avec **libcosmic**, inspiré de l’organisation visuelle de [Supaste](https://www.supaste.com/). Version de développement **0.5.0-dev.1**. Projet indépendant, sans affiliation à Supaste ou System76.
 
-![Interface de Nebula Paste avec des contenus de démonstration](docs/preview.png)
+![Identité visuelle proposée pour Nebula Paste 0.5](docs/identity-0.5.png)
+
+La 0.5 est en préparation : [identité, changements intégrés et améliorations proposées](docs/DESIGN-0.5.md). La planche ci-dessus illustre les styles et les icônes, sans être une capture de l’application.
 
 Pour contribuer, consulte [CONTRIBUTING.md](CONTRIBUTING.md). Les contrôles effectués et les limites de validation sont détaillés dans [VALIDATION.md](VALIDATION.md).
 

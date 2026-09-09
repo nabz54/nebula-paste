@@ -39,3 +39,7 @@ La capture de l’aperçu a été régénérée pour 0.4. Les captures de la gri
 ## Conditionnement GitHub
 
 L’archive Leptonica est livrée en deux parties pour respecter la limite de transfert de la connexion GitHub. Les empreintes des fichiers livrés ont été vérifiées ; leur concaténation est identique octet pour octet à l’archive originale et son extraction avec `tar -xzf` réussit. `build.rs` effectue cette concaténation avant extraction. La compilation Rust et les 18 tests précédents n’ont pas été relancés après cette adaptation du conditionnement.
+
+## Proposition visuelle 0.5.0-dev.1
+
+SVG parsés et planche PNG rendue puis inspectée. Contrastes des textes principal et secondaire sur les quatre surfaces de la planche vérifiés : minimum 6.49:1. Versions Cargo.toml/Cargo.lock concordantes ; syntaxe des scripts install/uninstall vérifiée avec bash -n. Rust/Cargo indisponibles dans cet environnement au moment de cette modification : compilation, tests et affichage réel COSMIC non exécutés pour cette proposition. Les résultats 0.4 ci-dessus ne constituent pas une validation de la 0.5.

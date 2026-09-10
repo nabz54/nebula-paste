@@ -1,5 +1,12 @@
 # Nebula Paste — applet pour COSMIC
 
+## 0.6.0-beta.1 — Intégration COSMIC
+
+Thème système, popup compact et fenêtre d’historique séparée partageant les mêmes données. [Installation et guide de test](docs/TESTING-0.6.md). Branche **v0.6-cosmic**. Validation sur le bureau réel à effectuer.
+
+Les captures et notes 0.5 ci-dessous décrivent la version précédente.
+
+
 [English](README.en.md) · [Changelog français](CHANGELOG.fr.md) · [English changelog](CHANGELOG.md)
 
 Un gestionnaire de presse-papiers natif, écrit en Rust avec **libcosmic**, inspiré de l’organisation visuelle de [Supaste](https://www.supaste.com/). Version de développement **0.5.0-dev.1**. Projet indépendant, sans affiliation à Supaste ou System76.

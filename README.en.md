@@ -1,5 +1,12 @@
 # Nebula Paste
 
+## 0.6.0-beta.1 — COSMIC integration
+
+System theme, compact panel popup and a separate shared history window. [Installation and test guide](docs/TESTING-0.6.en.md). Use branch **v0.6-cosmic**. Live desktop testing is pending.
+
+The screenshots and 0.5 notes below document the previous version.
+
+
 [Français](README.md) · [Changelog](CHANGELOG.md) · [Validation](VALIDATION.md)
 
 A native **Rust/libcosmic clipboard applet for COSMIC on Linux**. Nebula Paste keeps text, images, links, colors, code and file references in a local history. An independent project inspired by Supaste; not affiliated with Supaste or System76.

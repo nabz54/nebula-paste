@@ -40,10 +40,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 cosmic::app::Settings::default()
                     .size(cosmic::iced::Size::new(940.0, 650.0))
                     .transparent(false)
-                    .client_decorations(false)
-                    .theme(cosmic::Theme::dark()),
+                    .client_decorations(true),
                 app::Mode::Preview,
             )?;
+            return Ok(());
+        }
+        Some("--history") => {
+            ipc::history()
+                .map_err(|e| format!("Ajoute d’abord Nebula Paste au panneau COSMIC : {e}"))?;
             return Ok(());
         }
         Some("--toggle") => {
@@ -55,8 +59,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!(
                 "{}",
                 nebula_paste::tr!(
-                    "Nebula Paste\n  Sans option : lancer l’applet\n  --toggle : ouvrir/fermer l’applet déjà actif (raccourci COSMIC)\n  --preview : démonstration isolée\n  --render-preview fichier.png : capture du rendu de démonstration\n  --ocr image.png [fra|eng|fra+eng] : OCR embarqué\n  --version : version",
-                    "Nebula Paste\n  No option: start the applet\n  --toggle: open/close the running applet\n  --preview: isolated demo\n  --render-preview file.png [full|detail|list|settings|narrow]: native widget screenshot\n  --ocr image.png [fra|eng|fra+eng]: embedded OCR\n  --version: version"
+                    "Nebula Paste\n  Sans option : lancer l’applet\n  --toggle : ouvrir/fermer l’applet déjà actif (raccourci COSMIC)\n  --history : ouvrir l’historique complet de l’applet\n  --preview : démonstration isolée\n  --render-preview fichier.png [full|detail|list|settings|narrow|popup] [light|dark] : capture de démonstration\n  --ocr image.png [fra|eng|fra+eng] : OCR embarqué\n  --version : version",
+                    "Nebula Paste\n  No option: start the applet\n  --toggle: open/close the running applet\n  --history: open the applet’s full history window\n  --preview: isolated demo\n  --render-preview file.png [full|detail|list|settings|narrow|popup] [light|dark]: native widget screenshot\n  --ocr image.png [fra|eng|fra+eng]: embedded OCR\n  --version: version"
                 )
             );
             return Ok(());

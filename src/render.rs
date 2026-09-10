@@ -34,7 +34,20 @@ pub fn preview(path: &str) -> Result<(), Box<dyn std::error::Error>> {
         app.expand_demo();
         let _ = app.update(crate::app::Message::Viewport(360.0));
     }
-    let mut view = app.view();
+    let popup = std::env::args().nth(3).as_deref() == Some("popup");
+    if popup {
+        app.render_popup();
+    }
+    let theme = if std::env::args().nth(4).as_deref() == Some("light") {
+        cosmic::Theme::light()
+    } else {
+        cosmic::Theme::dark()
+    };
+    let mut view = if popup {
+        app.view_window(iced::window::Id::unique())
+    } else {
+        app.view()
+    };
     let mut renderer = iced::futures::executor::block_on(<cosmic::Renderer as Headless>::new(
         iced::Font::DEFAULT,
         iced::Pixels(14.0),
@@ -50,10 +63,10 @@ pub fn preview(path: &str) -> Result<(), Box<dyn std::error::Error>> {
     view.as_widget().draw(
         &tree,
         &mut renderer,
-        &cosmic::Theme::dark(),
+        &theme,
         &iced::advanced::renderer::Style {
-            text_color: crate::skin::TEXT,
-            icon_color: crate::skin::TEXT,
+            text_color: theme.cosmic().on_bg_color().into(),
+            icon_color: theme.cosmic().on_bg_color().into(),
             scale_factor: 1.0,
         },
         Layout::new(&node),
@@ -63,7 +76,7 @@ pub fn preview(path: &str) -> Result<(), Box<dyn std::error::Error>> {
     let pixels = renderer.screenshot(
         Size::new(size.width.ceil() as u32, size.height.ceil() as u32),
         1.0,
-        crate::skin::BG,
+        theme.cosmic().bg_color().into(),
     );
     image::save_buffer(
         path,

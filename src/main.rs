@@ -8,6 +8,7 @@ mod skin;
 mod transfer;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    nebula_paste::i18n::set_language("auto");
     match std::env::args().nth(1).as_deref() {
         Some("--ocr") => {
             use std::io::Read;
@@ -52,7 +53,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Some("--help") => {
             println!(
-                "Nebula Paste\n  Sans option : lancer l’applet\n  --toggle : ouvrir/fermer l’applet déjà actif (raccourci COSMIC)\n  --preview : démonstration isolée\n  --render-preview fichier.png : capture du rendu de démonstration\n  --ocr image.png [fra|eng|fra+eng] : OCR embarqué\n  --version : version"
+                "{}",
+                nebula_paste::tr!(
+                    "Nebula Paste\n  Sans option : lancer l’applet\n  --toggle : ouvrir/fermer l’applet déjà actif (raccourci COSMIC)\n  --preview : démonstration isolée\n  --render-preview fichier.png : capture du rendu de démonstration\n  --ocr image.png [fra|eng|fra+eng] : OCR embarqué\n  --version : version",
+                    "Nebula Paste\n  No option: start the applet\n  --toggle: open/close the running applet\n  --preview: isolated demo\n  --render-preview file.png [full|detail|list|settings|narrow]: native widget screenshot\n  --ocr image.png [fra|eng|fra+eng]: embedded OCR\n  --version: version"
+                )
             );
             return Ok(());
         }

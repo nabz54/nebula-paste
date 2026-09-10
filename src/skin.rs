@@ -3,13 +3,21 @@ use cosmic::{
     iced::{Border, Color},
     theme, widget,
 };
-pub const BG: Color = Color::from_rgb(0.055, 0.063, 0.09);
-pub const CARD: Color = Color::from_rgb(0.102, 0.118, 0.16);
-pub const PREVIEW: Color = Color::from_rgb(0.071, 0.086, 0.125);
-pub const LINE: Color = Color::from_rgb(0.22, 0.23, 0.25);
-pub const TEXT: Color = Color::from_rgb(0.94, 0.94, 0.96);
-pub const MUTED: Color = Color::from_rgb(0.62, 0.64, 0.69);
-pub const ACCENT: Color = Color::from_rgb(0.69, 0.64, 1.0);
+// Nebula 0.5: quiet slate surfaces, cyan interaction, violet identity.
+pub const BG: Color = Color::from_rgb(0.063, 0.078, 0.106);
+pub const CARD: Color = Color::from_rgb(0.102, 0.125, 0.161);
+pub const PREVIEW: Color = Color::from_rgb(0.078, 0.094, 0.125);
+pub const LINE: Color = Color::from_rgb(0.208, 0.247, 0.302);
+pub const TEXT: Color = Color::from_rgb(0.941, 0.953, 0.980);
+pub const MUTED: Color = Color::from_rgb(0.671, 0.718, 0.788);
+pub const ACCENT: Color = Color::from_rgb(0.451, 0.875, 0.827);
+pub const SELECTED: Color = Color::from_rgb(0.102, 0.196, 0.212);
+pub const HOVER: Color = Color::from_rgb(0.153, 0.192, 0.243);
+pub fn brand_icon() -> widget::icon::Handle {
+    widget::icon::from_svg_bytes(
+        include_bytes!("../resources/io.github.nebulapaste.NebulaPaste.svg").to_vec(),
+    )
+}
 pub fn surface(color: Color, radius: f32, border: Color) -> theme::Container<'static> {
     theme::Container::custom(move |_| cosmic::iced::widget::container::Style {
         background: Some(color.into()),
@@ -27,8 +35,10 @@ pub fn button(selected: bool, radius: f32, card: bool) -> theme::Button {
     let style = move |hover: bool, focus: bool| widget::button::Style {
         background: Some(
             (if hover {
-                Color::from_rgb(0.18, 0.185, 0.21)
-            } else if card || selected {
+                HOVER
+            } else if selected {
+                SELECTED
+            } else if card {
                 CARD
             } else {
                 BG
@@ -82,6 +92,7 @@ pub fn icon(name: &str) -> widget::icon::Handle {
         "edit-paste-symbolic" => {
             "<rect x='5' y='5' width='14' height='16' rx='2'/><rect x='9' y='3' width='6' height='4' rx='1'/><path d='M9 12h6m-6 4h6'/>"
         }
+        "media-playback-start-symbolic" => "<path d='m8 4 12 8-12 8z'/>",
         "window-close-symbolic" => "<path d='m6 6 12 12M18 6 6 18'/>",
         "edit-delete-symbolic" => "<path d='M4 6h16M9 6V3h6v3M7 6l1 15h8l1-15M10 10v7m4-7v7'/>",
         "image-x-generic-symbolic" => {
@@ -98,6 +109,14 @@ pub fn icon(name: &str) -> widget::icon::Handle {
         }
         "folder-symbolic" => "<path d='M3 6h7l2 3h9v11H3z'/>",
         "search" => "<circle cx='10' cy='10' r='6'/><path d='m15 15 6 6'/>",
+        "emblem-system-symbolic" => {
+            "<circle cx='12' cy='12' r='3'/><path d='M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6l1.4 1.4m10 10 1.4 1.4m0-12.8-1.4 1.4m-10 10-1.4 1.4'/>"
+        }
+        "media-playback-pause-symbolic" => "<path d='M9 5v14M15 5v14'/>",
+        "view-reveal-symbolic" => {
+            "<path d='M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z'/><circle cx='12' cy='12' r='2.5'/>"
+        }
+        "object-select-symbolic" => "<path d='m4 12 5 5L20 6'/>",
         _ => "<path d='M5 5h14M5 10h14M5 15h10M5 20h7'/>",
     };
     let svg = format!(

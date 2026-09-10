@@ -141,6 +141,33 @@ impl Store {
             .map(|_| ())
             .map_err(|e| e.to_string())
     }
+    /// Supprime les entrées non favorites antérieures à `cutoff`. Les favoris ne
+    /// sont jamais concernés par la durée de rétention.
+    pub fn purge_older_than(&self, cutoff: i64) -> Result<usize, String> {
+        self.connection
+            .execute(
+                "DELETE FROM clips WHERE pinned=0 AND timestamp<?1",
+                [cutoff],
+            )
+            .map_err(|e| e.to_string())
+    }
+    /// Undo preserves metadata and never evicts other clips or overwrites a recaptured clip.
+    pub fn restore(&mut self, clip: &Clip) -> Result<bool, String> {
+        let tx = self.connection.transaction().map_err(|e| e.to_string())?;
+        let inserted = tx.execute("INSERT INTO clips(id,mime,bytes,timestamp,pinned,category) VALUES(?1,?2,?3,?4,?5,?6) ON CONFLICT(id) DO NOTHING", params![clip.id, clip.mime, clip.bytes, clip.timestamp, clip.pinned, clip.category]).map_err(|e| e.to_string())?;
+        let (count, size): (usize, usize) = tx
+            .query_row(
+                "SELECT COUNT(*),COALESCE(SUM(length(bytes)),0) FROM clips",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .map_err(|e| e.to_string())?;
+        if count > MAX_ITEMS || size > MAX_HISTORY_BYTES {
+            return Err("Impossible de restaurer : historique plein".into());
+        }
+        tx.commit().map_err(|e| e.to_string())?;
+        Ok(inserted != 0)
+    }
     pub fn clear_unpinned(&self) -> Result<(), String> {
         self.connection
             .execute("DELETE FROM clips WHERE pinned=0", [])

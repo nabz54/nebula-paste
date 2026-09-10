@@ -1,3 +1,4 @@
+use crate::{tr, tr_format};
 use sha2::{Digest, Sha256};
 use std::io::Cursor;
 
@@ -26,11 +27,11 @@ impl Kind {
     ];
     pub fn label(self) -> &'static str {
         match self {
-            Self::Text => "Textes",
-            Self::Link => "Liens",
-            Self::Image => "Images",
-            Self::Color => "Couleurs",
-            Self::Files => "Fichiers",
+            Self::Text => tr!("Textes", "Text"),
+            Self::Link => tr!("Liens", "Links"),
+            Self::Image => tr!("Images", "Images"),
+            Self::Color => tr!("Couleurs", "Colors"),
+            Self::Files => tr!("Fichiers", "Files"),
             Self::Code => "Code",
         }
     }
@@ -62,7 +63,11 @@ pub struct Clip {
 impl Clip {
     pub fn new(mime: String, bytes: Vec<u8>, timestamp: i64) -> Result<Self, String> {
         if bytes.is_empty() || bytes.len() > MAX_CLIP_BYTES {
-            return Err("Contenu vide ou supérieur à 16 Mio".into());
+            return Err(tr!(
+                "Contenu vide ou supérieur à 16 Mio",
+                "Empty content or larger than 16 MiB"
+            )
+            .into());
         }
         let mut hash = Sha256::new();
         hash.update(mime.as_bytes());
@@ -77,7 +82,8 @@ impl Clip {
                 String::new(),
             )
         } else {
-            let text = String::from_utf8(bytes.clone()).map_err(|_| "Texte non UTF-8")?;
+            let text = String::from_utf8(bytes.clone())
+                .map_err(|_| tr!("Texte non UTF-8", "Text is not UTF-8"))?;
             let trimmed = text.trim();
             let kind = if mime == "text/uri-list" {
                 Kind::Files
@@ -108,7 +114,7 @@ impl Clip {
             let title = trimmed
                 .lines()
                 .find(|line| !line.is_empty())
-                .unwrap_or("Texte vide")
+                .unwrap_or(tr!("Texte vide", "Empty text"))
                 .chars()
                 .take(64)
                 .collect();
@@ -179,6 +185,65 @@ pub fn color(value: &str) -> Option<[u8; 3]> {
     }
 }
 
+/// Plain text preserves text/code bytes. Only local file URIs become paths.
+pub fn plain_text(clip: &Clip) -> Option<String> {
+    if clip.kind == Kind::Image {
+        return None;
+    }
+    if clip.mime != "text/uri-list" {
+        return Some(clip.text.clone());
+    }
+    Some(
+        clip.text
+            .lines()
+            .map(str::trim)
+            .filter(|line| !line.is_empty() && !line.starts_with('#'))
+            .map(|line| {
+                if let Some(path) = line.strip_prefix("file:///") {
+                    decode_percent(&format!("/{path}"))
+                } else if let Some(path) = line.strip_prefix("file://localhost/") {
+                    decode_percent(&format!("/{path}"))
+                } else {
+                    line.to_owned()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n"),
+    )
+}
+
+fn decode_percent(value: &str) -> String {
+    let bytes = value.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut index = 0;
+    while index < bytes.len() {
+        // `get` refuse une tranche qui couperait un caractère multi-octets.
+        if bytes[index] == b'%'
+            && let Some(byte) = value
+                .get(index + 1..index + 3)
+                .filter(|hex| hex.bytes().all(|b| b.is_ascii_hexdigit()))
+                .and_then(|hex| u8::from_str_radix(hex, 16).ok())
+        {
+            out.push(byte);
+            index += 3;
+        } else {
+            out.push(bytes[index]);
+            index += 1;
+        }
+    }
+    String::from_utf8(out).unwrap_or_else(|_| value.to_string())
+}
+
+/// Compte à rebours lisible pour la pause temporaire.
+pub fn countdown(seconds: i64) -> String {
+    let seconds = seconds.max(0);
+    match seconds {
+        0..60 => format!("{seconds} s"),
+        60..3600 => format!("{} min {:02} s", seconds / 60, seconds % 60),
+        _ => format!("{} h {:02} min", seconds / 3600, (seconds % 3600) / 60),
+    }
+}
+
 pub fn now() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -188,9 +253,9 @@ pub fn now() -> i64 {
 pub fn age(timestamp: i64) -> String {
     let seconds = (now() - timestamp).max(0);
     match seconds {
-        0..60 => "À l’instant".into(),
-        60..3600 => format!("Il y a {} min", seconds / 60),
-        3600..86400 => format!("Il y a {} h", seconds / 3600),
-        _ => format!("Il y a {} j", seconds / 86400),
+        0..60 => tr!("À l’instant", "Just now").into(),
+        60..3600 => tr_format!("Il y a {} min", "{} min ago", seconds / 60),
+        3600..86400 => tr_format!("Il y a {} h", "{} h ago", seconds / 3600),
+        _ => tr_format!("Il y a {} j", "{} days ago", seconds / 86400),
     }
 }

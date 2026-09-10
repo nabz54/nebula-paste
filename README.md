@@ -1,8 +1,12 @@
 # Nebula Paste — applet pour COSMIC
 
-Un gestionnaire de presse-papiers natif, écrit en Rust avec **libcosmic**, inspiré de l’organisation visuelle de [Supaste](https://www.supaste.com/). Version **0.4.0**. Projet indépendant, sans affiliation à Supaste ou System76.
+[English](README.en.md) · [Changelog français](CHANGELOG.fr.md) · [English changelog](CHANGELOG.md)
 
-![Interface de Nebula Paste avec des contenus de démonstration](docs/preview.png)
+Un gestionnaire de presse-papiers natif, écrit en Rust avec **libcosmic**, inspiré de l’organisation visuelle de [Supaste](https://www.supaste.com/). Version de développement **0.5.0-dev.1**. Projet indépendant, sans affiliation à Supaste ou System76.
+
+![Interface française de Nebula Paste 0.5](docs/preview-0.5-fr.png)
+
+La 0.5 est en préparation : [identité, changements intégrés et améliorations proposées](docs/DESIGN-0.5.md). La capture ci-dessus provient du rendu natif des widgets. La planche d’identité est disponible dans le guide de conception.
 
 Pour contribuer, consulte [CONTRIBUTING.md](CONTRIBUTING.md). Les contrôles effectués et les limites de validation sont détaillés dans [VALIDATION.md](VALIDATION.md).
 
@@ -29,7 +33,7 @@ L’image et le texte restent en mémoire pendant la reconnaissance. Les modèle
 
 Le design 0.3 est conservé : palette bleu nuit, accents par type, grille défilante, recherche Ctrl+F, favoris, catégories, aperçu et glisser-déposer sortant.
 
-**Collage direct :** le bouton « Copier seulement » en haut fait défiler les trois modes. Place d’abord le curseur dans l’application cible, ouvre Nebula Paste avec ton raccourci puis choisis une carte. En mode collage, le volet se ferme, attend 350 ms pour le retour du focus, puis envoie Ctrl+V ou Ctrl+Maj+V. La cible est l’application active à cet instant, pas une application identifiée par l’applet. Le protocole clavier virtuel doit être autorisé par COSMIC. En cas d’échec de wtype, le volet affiche l’erreur et le contenu reste copié. La réussite de wtype confirme l’envoi du raccourci, pas son traitement par l’application. Le mode revient à « Copier seulement » au redémarrage.
+**Collage direct :** le bouton « Copier seulement » en haut fait défiler les trois modes. Place d’abord le curseur dans l’application cible, ouvre Nebula Paste avec ton raccourci puis choisis une carte. En mode collage, le volet se ferme, attend 350 ms pour le retour du focus, puis envoie Ctrl+V ou Ctrl+Maj+V. La cible est l’application active à cet instant, pas une application identifiée par l’applet. Le protocole clavier virtuel doit être autorisé par COSMIC. En cas d’échec de wtype, le volet affiche l’erreur et le contenu reste copié. La réussite de wtype confirme l’envoi du raccourci, pas son traitement par l’application. Le mode choisi est conservé au redémarrage ; « Copier seulement » est le réglage initial.
 
 **Glisser-déposer :** maintiens la poignée à points à gauche sous une carte et déplace-la vers une application acceptant son format. Le clic sur la carte conserve son rôle de copie. Pour les images, la cible doit accepter directement PNG/JPEG ; l’applet ne crée pas un fichier image exporté pour les zones qui n’acceptent que des fichiers. Les fichiers conservés dans l’historique restent des références vers leur emplacement d’origine. Pas de dépôt entrant dans cette version. Le mode de démonstration désactive les transferts vers les autres applications.
 
@@ -37,7 +41,7 @@ Pour mettre à jour : retire temporairement Nebula Paste du panneau, extrais cet
 
 ### Aperçu sans toucher à l’historique
 
-Après compilation, `target/release/nebula-paste --preview` ouvre une fenêtre avec des données fictives en mémoire. La capture et la recopie sont désactivées dans ce mode. `--render-preview fichier.png` produit une capture du même arbre de widgets via le moteur logiciel, sans serveur graphique. Une capture de cette livraison est incluse dans `docs/preview.png`.
+Après compilation, `target/release/nebula-paste --preview` ouvre une fenêtre avec des données fictives en mémoire. La capture et la recopie sont désactivées dans ce mode. `--render-preview fichier.png` produit une capture du même arbre de widgets via le moteur logiciel, sans serveur graphique. Une capture de cette livraison est incluse dans `docs/preview-0.5-fr.png`.
 
 ## Utilisation
 
@@ -46,6 +50,20 @@ Après compilation, `target/release/nebula-paste --preview` ouvre une fenêtre a
 3. Recherche, filtre par type, ou ouvre les favoris et catégories.
 4. Clique sur une carte : son contenu retourne au presse-papiers et le volet se ferme.
 5. En mode « Copier seulement », colle avec **Ctrl+V** dans l’application souhaitée ; les modes de collage direct envoient le raccourci après fermeture.
+
+### Préférences, texte brut et pause (0.5)
+
+**Langue de l’interface :** automatique selon la langue du système, ou français/anglais via Préférences → Langue. Ce choix est indépendant de la langue OCR. L’option « Après copie » permet de rester ouvert en copie seule ; le collage direct ferme toujours le volet.
+
+L’icône d’engrenage ouvre les préférences : **affichage** (grille ou liste compacte), **langue de l’OCR**, **durée de rétention** et **mode de collage**. Elles sont conservées dans `~/.config/nebula-paste/settings.conf` et relues au démarrage. Une valeur inconnue dans ce fichier est ignorée au profit de la valeur par défaut. Après avoir choisi la durée, clique sur **Appliquer la rétention**. Faire défiler les durées ne supprime rien. La rétention supprime les entrées plus anciennes que la durée choisie et ne touche jamais les favoris.
+
+En liste compacte, le volet se réduit à une colonne pour les petits écrans et les fortes mises à l’échelle ; aucun contrôle ne disparaît, les intitulés deviennent des icônes. En grille, le nombre de colonnes suit la largeur réellement accordée au volet.
+
+**Texte brut :** dans l’aperçu, « Copier en texte brut » ou Ctrl+Maj+C rend le même texte sans mise en forme, les URI de fichiers locaux devenant des chemins. Le texte et le code déjà en texte brut sont conservés exactement, y compris leurs espaces et leurs balises éventuelles. L’entrée conservée dans l’historique n’est pas modifiée.
+
+**Suppression annulable :** après une suppression, la barre d’état propose « Annuler la suppression » pendant douze secondes, avec compte à rebours. L’entrée revient avec sa date, son favori et sa catégorie. Une recapture identique reste inchangée. Si l’historique est plein, l’annulation échoue sans évincer une autre copie. Vider l’historique supprime aussi l’annulation en attente.
+
+**Pause temporaire :** le bouton **Pause** propose 5, 15 ou 60 minutes, ou une pause sans limite. Le temps restant est affiché et la capture reprend seule à l’échéance. Les copies faites pendant la pause ne sont pas importées après la reprise.
 
 Le bouton **Aperçu** affiche le contenu et permet d’attribuer une catégorie libre, par exemple « Travail », « Commandes » ou « Modèles ». L’étoile conserve un élément dans les favoris. **Vider** demande confirmation et conserve les favoris.
 
@@ -98,11 +116,15 @@ L’applet doit déjà être présent dans le panneau. Ce raccourci contacte l�
 
 | Touche | Action |
 | --- | --- |
-| Ctrl+1 à Ctrl+8 | Copier la carte correspondante de la page affichée |
+| Ctrl+1 à Ctrl+9 | Copier la carte correspondante de la page affichée |
 | Alt+← / Alt+→ | Changer la carte sélectionnée |
+| Alt+↑ / Alt+↓ | Changer de ligne ; en liste compacte, d’un élément |
+| Ctrl+Maj+C | Copier la sélection ou l’aperçu ouvert en texte brut |
 | Entrée depuis la recherche | Copier la sélection |
 | Ctrl+F | Revenir à la recherche |
-| Échap | Annuler la confirmation, revenir de l’aperçu ou fermer |
+| Échap | Fermer les préférences ou la pause, annuler la confirmation, revenir de l’aperçu ou fermer |
+
+Le nombre de raccourcis Ctrl+chiffre suit la taille de page : elle dépend de la largeur du volet et de la densité choisie. La ligne d’aide en bas du volet affiche la valeur courante.
 
 ## Fonctionnalités implémentées
 
@@ -116,6 +138,10 @@ L’applet doit déjà être présent dans le panneau. Ce raccourci contacte l�
 - Surveillance événementielle Wayland : `ext-data-control`, avec repli sur `wlr-data-control`.
 - Recopie native via `wl-clipboard-rs`, sans dépendance à `wl-copy`, `wl-paste` ou un service de simulation clavier.
 - Pause de capture pour la session et reprise ; invalidation des transferts en cours lors d’une pause ou d’une suppression.
+- Pause temporaire de 5, 15 ou 60 minutes avec compte à rebours et reprise automatique.
+- Préférences persistantes : densité d’affichage, langue OCR, durée de rétention, mode de collage.
+- Largeur adaptative, mode liste compact et navigation clavier commune aux deux mises en page.
+- Copie en texte brut et annulation d’une suppression pendant douze secondes.
 - Maximum de 500 éléments et de 128 Mio de contenus ; éviction des plus anciens hors favoris.
 - Limite de 16 Mio par copie, durée de transfert bornée, contrôle des dimensions et de la mémoire lors du décodage des images.
 - Instance unique et commande locale `--toggle`.
@@ -163,7 +189,7 @@ Les tests vérifient la persistance, le dédoublonnage, les favoris, l’évicti
 7. Vérifier le raccourci `--toggle`, les raccourcis du volet et l’échec propre d’une seconde instance.
 8. Vider l’historique et vérifier que seuls les favoris restent.
 9. Extraire le texte d’une capture française avec accents, puis anglaise ; vérifier aussi une image sans texte. Aucun paquet de langues n’est requis.
-10. Depuis un éditeur puis un terminal, ouvrir au raccourci et choisir une carte dans le mode de collage approprié ; vérifier aussi le retour à la copie seule.
+10. Depuis un éditeur puis un terminal, ouvrir au raccourci et choisir une carte dans le mode de collage approprié ; vérifier aussi la conservation du mode choisi au redémarrage.
 11. Glisser texte, image et référence de fichier vers des cibles compatibles ; annuler un glissement avec Échap, puis vérifier que la copie par clic fonctionne encore.
 
 Le code a été compilé et le rendu des widgets contrôlé dans une capture hors écran. **Le positionnement du popup et les échanges Wayland doivent encore être revérifiés dans ta session COSMIC réelle.**
@@ -217,3 +243,4 @@ nebula-paste --ocr image.png fra+eng
 Cette commande utilise le même moteur que le bouton OCR et ne nécessite ni panneau ni session graphique. Elle écrit le texte reconnu sur la sortie standard.
 
 Le contrôle `bash scripts/check-embedded-ocr.sh` vérifie l’OCR après `cargo build` avec un PATH vide et sans modèles système. Un chemin d’exécutable peut être passé en argument, par exemple `bash scripts/check-embedded-ocr.sh target/release/nebula-paste`.
+

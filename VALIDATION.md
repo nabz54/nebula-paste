@@ -1,3 +1,18 @@
+# Validation courante — 0.5.0-dev.1, 10 septembre 2026
+
+- Compilation de développement Linux réussie avec Rust 1.98.1 et dépendances verrouillées.
+- **33 tests réussis** : 4 bibliothèque/préférences/langues, 17 application/OCR/transferts, 12 historique/intégrité/rétention/restauration.
+- `cargo fmt --check` et syntaxe des scripts Bash validés.
+- OCR réel anglais, français et combiné validé avec PATH vide, modèles système ignorés et sans liaison dynamique à Tesseract/Leptonica.
+- Captures natives produites et inspectées en français/anglais, grille 940 px, liste 470 px, préférences 470 px et grille étroite 360 px. En-tête et pagination corrigés après inspection.
+- Patch utilisateur intégré avec corrections : restauration transactionnelle, texte/code inchangé en copie brute, pause monotone, rétention appliquée explicitement, fichier temporaire de préférences unique.
+
+**Limites :** build de développement, pas de build release ; aucun essai dans une session Fedora COSMIC réelle. Placement du popup, redimensionnement par le compositeur, interaction Wayland, retour de focus, icône symbolique selon le thème et glisser-déposer restent à contrôler sur ce bureau. Les captures hors écran ne valident pas ces échanges.
+
+Les blocs suivants conservent l’historique des validations antérieures et sont remplacés, pour l’état courant, par les résultats ci-dessus.
+
+---
+
 # Validation 0.4.0 — 9 septembre 2026
 
 Environnement : Linux x86_64, Ubuntu 24.04, Rust 1.98.1. Compilation native depuis les sources embarquées, dépendances Rust verrouillées dans Cargo.lock.
@@ -39,3 +54,7 @@ La capture de l’aperçu a été régénérée pour 0.4. Les captures de la gri
 ## Conditionnement GitHub
 
 L’archive Leptonica est livrée en deux parties pour respecter la limite de transfert de la connexion GitHub. Les empreintes des fichiers livrés ont été vérifiées ; leur concaténation est identique octet pour octet à l’archive originale et son extraction avec `tar -xzf` réussit. `build.rs` effectue cette concaténation avant extraction. La compilation Rust et les 18 tests précédents n’ont pas été relancés après cette adaptation du conditionnement.
+
+## Proposition visuelle 0.5.0-dev.1
+
+SVG parsés et planche PNG rendue puis inspectée. Contrastes des textes principal et secondaire sur les quatre surfaces de la planche vérifiés : minimum 6.49:1. Versions Cargo.toml/Cargo.lock concordantes ; syntaxe des scripts install/uninstall vérifiée avec bash -n. Rust/Cargo indisponibles dans cet environnement au moment de cette modification : compilation, tests et affichage réel COSMIC non exécutés pour cette proposition. Les résultats 0.4 ci-dessus ne constituent pas une validation de la 0.5.

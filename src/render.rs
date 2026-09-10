@@ -20,6 +20,20 @@ pub fn preview(path: &str) -> Result<(), Box<dyn std::error::Error>> {
     if std::env::args().nth(3).as_deref() == Some("full") {
         app.expand_demo();
     }
+    if matches!(
+        std::env::args().nth(3).as_deref(),
+        Some("list" | "settings")
+    ) {
+        app.expand_demo();
+        let _ = app.update(crate::app::Message::Density);
+    }
+    if std::env::args().nth(3).as_deref() == Some("settings") {
+        let _ = app.update(crate::app::Message::Settings(true));
+    }
+    if std::env::args().nth(3).as_deref() == Some("narrow") {
+        app.expand_demo();
+        let _ = app.update(crate::app::Message::Viewport(360.0));
+    }
     let mut view = app.view();
     let mut renderer = iced::futures::executor::block_on(<cosmic::Renderer as Headless>::new(
         iced::Font::DEFAULT,

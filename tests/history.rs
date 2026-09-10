@@ -118,6 +118,69 @@ fn invalid_images_and_oversized_clips_are_rejected() {
 }
 
 #[test]
+fn plain_text_preserves_markup_code_decodes_local_uris_and_keeps_whitespace() {
+    use nebula_paste::model::plain_text;
+    let markup = Clip::new(
+        "text/plain;charset=utf-8".into(),
+        b"<p>Bonjour <b>COSMIC</b></p><p>&amp; la suite</p>".to_vec(),
+        1,
+    )
+    .unwrap();
+    assert_eq!(plain_text(&markup).unwrap(), markup.text);
+    let files = Clip::new(
+        "text/uri-list".into(),
+        "file:///tmp/mon%20fichier.txt\r\n#commentaire\r\nfile:///tmp/été%.txt\r\n"
+            .as_bytes()
+            .to_vec(),
+        1,
+    )
+    .unwrap();
+    assert_eq!(
+        plain_text(&files).unwrap(),
+        "/tmp/mon fichier.txt\n/tmp/été%.txt"
+    );
+    // Un texte sans mise en forme traverse la conversion sans être réécrit.
+    assert_eq!(
+        plain_text(&clip("  été\tà Nancy\n", 1)).unwrap(),
+        "  été\tà Nancy\n"
+    );
+    let image = Clip::new(
+        "image/png".into(),
+        include_bytes!("fixtures/ocr.png").to_vec(),
+        1,
+    )
+    .unwrap();
+    assert!(plain_text(&image).is_none());
+}
+
+#[test]
+fn retention_removes_old_entries_and_spares_favorites() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut db = Store::open(&dir.path().join("data/history.sqlite3")).unwrap();
+    let mut old = clip("ancien", 1_000);
+    let kept = clip("ancien favori", 1_001);
+    let recent = clip("récent", 9_000);
+    for entry in [&old, &kept, &recent] {
+        db.insert(entry).unwrap();
+    }
+    db.pin(&kept.id, true).unwrap();
+    assert_eq!(db.purge_older_than(5_000).unwrap(), 1);
+    let entries = db.load().unwrap();
+    assert_eq!(entries.len(), 2);
+    assert!(!entries.iter().any(|e| e.id == old.id));
+    // La restauration rend l’entrée avec son horodatage, sans doublon.
+    old.category = "Travail".into();
+    db.restore(&old).unwrap();
+    old.category = "Travail".into();
+    db.restore(&old).unwrap();
+    let entries = db.load().unwrap();
+    assert_eq!(entries.len(), 3);
+    let restored = entries.iter().find(|e| e.id == old.id).unwrap();
+    assert_eq!(restored.timestamp, 1_000);
+    assert_eq!(restored.category, "Travail");
+}
+
+#[test]
 fn storage_permissions_are_private() {
     use std::os::unix::fs::PermissionsExt;
     let dir = tempfile::tempdir().unwrap();
@@ -135,4 +198,35 @@ fn storage_permissions_are_private() {
             & 0o777,
         0o700
     );
+}
+
+#[test]
+fn undo_restores_metadata_without_overwriting_a_recaptured_clip() {
+    let mut db = Store::in_memory().unwrap();
+    let mut original = clip("à restaurer", 123);
+    original.pinned = true;
+    original.category = "Travail".into();
+    assert!(db.restore(&original).unwrap());
+    let restored = db.load().unwrap().remove(0);
+    assert!(restored.pinned);
+    assert_eq!(restored.category, "Travail");
+    assert_eq!(restored.timestamp, 123);
+    db.delete(&original.id).unwrap();
+    db.insert(&clip("à restaurer", 456)).unwrap();
+    assert!(!db.restore(&original).unwrap());
+    let recaptured = db.load().unwrap().remove(0);
+    assert!(!recaptured.pinned);
+    assert_eq!(recaptured.timestamp, 456);
+}
+
+#[test]
+fn undo_at_capacity_does_not_evict_other_clips() {
+    let mut db = Store::in_memory().unwrap();
+    for i in 0..MAX_ITEMS {
+        db.insert(&clip(&format!("item {i}"), i as i64)).unwrap();
+    }
+    let before: Vec<_> = db.load().unwrap().into_iter().map(|c| c.id).collect();
+    assert!(db.restore(&clip("ancienne copie", 0)).is_err());
+    let after: Vec<_> = db.load().unwrap().into_iter().map(|c| c.id).collect();
+    assert_eq!(before, after);
 }

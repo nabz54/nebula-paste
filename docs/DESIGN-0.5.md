@@ -31,7 +31,13 @@ Le panneau utilise `io.github.nebulapaste.NebulaPaste-symbolic`. Le lanceur et l
 
 La planche illustre la direction artistique ; elle n’est pas une capture de l’application compilée. Les captures `preview*.png` existantes représentent la version précédente.
 
-## Améliorations proposées, non implémentées
+## Étape fonctionnelle intégrée
+
+Le patch `0001-nebula-paste-0.5-haute.patch` a été intégré avec les protections de restauration écrites en parallèle. La grille adapte son nombre de colonnes à la largeur ; la liste compacte conserve ses actions et le glisser-déposer. Les préférences sont maintenant regroupées dans `settings.conf`, avec interface français/anglais et langue OCR indépendante.
+
+Rétention avec application explicite, copie en texte brut sans altérer le code, pause monotone de 5/15/60 minutes, annulation transactionnelle de 12 secondes et option pour rester ouvert après copie sont intégrées. L’état de compilation et les contrôles réalisés figurent dans VALIDATION.md. La recherche OCR liée aux images et la gestion avancée des catégories restent des évolutions futures.
+
+## Cible fonctionnelle de la 0.5
 
 | Priorité | Amélioration | Résultat attendu | Critère de validation |
 | --- | --- | --- | --- |

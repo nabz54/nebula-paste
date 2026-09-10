@@ -1,3 +1,18 @@
+# Validation courante — 0.5.0-dev.1, 10 septembre 2026
+
+- Compilation de développement Linux réussie avec Rust 1.98.1 et dépendances verrouillées.
+- **33 tests réussis** : 4 bibliothèque/préférences/langues, 17 application/OCR/transferts, 12 historique/intégrité/rétention/restauration.
+- `cargo fmt --check` et syntaxe des scripts Bash validés.
+- OCR réel anglais, français et combiné validé avec PATH vide, modèles système ignorés et sans liaison dynamique à Tesseract/Leptonica.
+- Captures natives produites et inspectées en français/anglais, grille 940 px, liste 470 px, préférences 470 px et grille étroite 360 px. En-tête et pagination corrigés après inspection.
+- Patch utilisateur intégré avec corrections : restauration transactionnelle, texte/code inchangé en copie brute, pause monotone, rétention appliquée explicitement, fichier temporaire de préférences unique.
+
+**Limites :** build de développement, pas de build release ; aucun essai dans une session Fedora COSMIC réelle. Placement du popup, redimensionnement par le compositeur, interaction Wayland, retour de focus, icône symbolique selon le thème et glisser-déposer restent à contrôler sur ce bureau. Les captures hors écran ne valident pas ces échanges.
+
+Les blocs suivants conservent l’historique des validations antérieures et sont remplacés, pour l’état courant, par les résultats ci-dessus.
+
+---
+
 # Validation 0.4.0 — 9 septembre 2026
 
 Environnement : Linux x86_64, Ubuntu 24.04, Rust 1.98.1. Compilation native depuis les sources embarquées, dépendances Rust verrouillées dans Cargo.lock.

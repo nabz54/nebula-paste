@@ -55,3 +55,10 @@ pub fn toggle() -> io::Result<()> {
     socket.send_to(b"toggle", directory()?.join("control.sock"))?;
     Ok(())
 }
+
+/// Ask the applet to open its shared history window.
+pub fn history() -> io::Result<()> {
+    let socket = UnixDatagram::unbound()?;
+    socket.send_to(b"history", directory()?.join("control.sock"))?;
+    Ok(())
+}

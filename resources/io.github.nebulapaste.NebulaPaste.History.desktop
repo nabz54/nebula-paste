@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Nebula Paste History
+Name[fr]=Historique Nebula Paste
+Comment=Open clipboard history (requires the Nebula Paste panel applet)
+Comment[fr]=Ouvrir l’historique (nécessite l’applet Nebula Paste dans le panneau)
+Type=Application
+Icon=io.github.nebulapaste.NebulaPaste
+Exec=nebula-paste --history
+Terminal=false
+Categories=COSMIC;Utility;
+Keywords=Clipboard;History;

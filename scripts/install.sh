@@ -32,6 +32,10 @@ desktop_exec="${desktop_exec//%/%%}"
 { while IFS= read -r line; do
     if [[ "$line" == Exec=* ]]; then printf 'Exec="%s"\n' "$desktop_exec"; else printf '%s\n' "$line"; fi
 done < resources/io.github.nebulapaste.NebulaPaste.desktop; } > "$data_dir/applications/io.github.nebulapaste.NebulaPaste.desktop"
+# Launcher uses the same applet process through its private IPC socket.
+{ while IFS= read -r line; do
+    if [[ "$line" == Exec=* ]]; then printf 'Exec="%s" --history\n' "$desktop_exec"; else printf '%s\n' "$line"; fi
+done < resources/io.github.nebulapaste.NebulaPaste.History.desktop; } > "$data_dir/applications/io.github.nebulapaste.NebulaPaste.History.desktop"
 if command -v update-desktop-database >/dev/null; then update-desktop-database "$data_dir/applications"; fi
 echo 'Installé. COSMIC : Paramètres → Bureau → Panneau → Applets → Ajouter → Nebula Paste.'
 echo 'Si absent de la liste, déconnecte puis reconnecte ta session.'

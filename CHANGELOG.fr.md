@@ -2,6 +2,17 @@
 
 [English](CHANGELOG.md)
 
+## 0.6.0-beta.1 — Intégration COSMIC
+
+- Surfaces, contrôles, textes et icônes symboliques suivent le thème système.
+- Popup compact de 360 unités logiques, cinq copies par page.
+- Historique partagé dans une fenêtre séparée et redimensionnable, sans second moniteur ni second processus d’écriture.
+- Commande `--history` et lanceur nécessitant l’applet active dans le panneau.
+- La fermeture de l’historique conserve la capture ; le collage direct ferme la vue active.
+- Infobulles bilingues, rendus clair/sombre, tests de cycle des fenêtres et contrôles CI.
+- Historique, préférences et OCR embarqué 0.5 conservés, sans migration de données.
+- Essais Fedora COSMIC à effectuer : [guide](docs/TESTING-0.6.md).
+
 ## 0.5.0 — Non publiée en version stable
 
 ### Ajouts

@@ -27,6 +27,7 @@ use std::{
 /// positionneur accepte désormais un volet plus étroit que la valeur idéale.
 const WIDTH_WIDE: f32 = 940.0;
 const WIDTH_COMPACT: f32 = 470.0;
+const WIDTH_POPUP: f32 = 360.0;
 const WIDTH_MIN: f32 = 360.0;
 /// Largeur minimale d’une carte de la grille et espacement entre les cartes.
 const CARD_WIDTH: f32 = 205.0;
@@ -47,6 +48,7 @@ pub enum Mode {
 pub struct App {
     core: cosmic::Core,
     popup: Option<Id>,
+    history: Option<Id>,
     instance: Option<Instance>,
     demo: bool,
     monitor: Monitor,
@@ -93,6 +95,10 @@ struct Undo {
 #[derive(Debug, Clone)]
 pub enum Message {
     Toggle,
+    OpenHistory,
+    HistoryOpened(Id),
+    CloseView,
+    DragHistory,
     PasteMode,
     Ocr(String),
     OcrLanguage,
@@ -142,6 +148,11 @@ pub enum Message {
 }
 
 impl App {
+    pub(crate) fn render_popup(&mut self) {
+        self.demo = false;
+        self.viewport = WIDTH_POPUP;
+        self.reset();
+    }
     pub(crate) fn expand_demo(&mut self) {
         if !self.demo {
             return;
@@ -180,7 +191,13 @@ impl App {
     }
     /// Largeur idéale du volet pour la densité courante ; le compositeur peut
     /// en accorder moins, ce que `viewport` rapporte.
+    fn is_popup(&self) -> bool {
+        !self.demo && self.history.is_none()
+    }
     fn ideal_width(&self) -> f32 {
+        if self.is_popup() {
+            return WIDTH_POPUP;
+        }
         match self.settings.density {
             Density::Compact => WIDTH_COMPACT,
             Density::Comfortable => WIDTH_WIDE,
@@ -190,6 +207,9 @@ impl App {
         self.viewport.clamp(WIDTH_MIN, self.ideal_width())
     }
     fn columns(&self) -> usize {
+        if self.is_popup() {
+            return 1;
+        }
         match self.settings.density {
             Density::Compact => 1,
             Density::Comfortable => {
@@ -199,6 +219,9 @@ impl App {
         }
     }
     fn rows(&self) -> usize {
+        if self.is_popup() {
+            return 5;
+        }
         match self.settings.density {
             Density::Compact => 6,
             Density::Comfortable => 2,
@@ -408,7 +431,7 @@ impl App {
         )
         .padding(12)
         .width(Length::Fill)
-        .class(skin::surface(skin::PREVIEW, 10.0, skin::LINE))
+        .class(cosmic::theme::Container::Card)
         .into()
     }
     /// Copie la même information sans sa mise en forme, en `text/plain`.
@@ -479,11 +502,7 @@ impl App {
             }))
             .center_x(Length::Fill)
             .center_y(height)
-            .class(skin::surface(
-                Color::from_rgb8(rgb[0], rgb[1], rgb[2]),
-                8.0,
-                Color::TRANSPARENT,
-            ))
+            .class(skin::swatch(Color::from_rgb8(rgb[0], rgb[1], rgb[2])))
             .into()
         } else if clip.kind == Kind::Link && height < 180.0 {
             let domain = clip
@@ -501,7 +520,7 @@ impl App {
                     .push(
                         widget::text(domain.chars().take(23).collect::<String>())
                             .size(17)
-                            .class(skin::kind_color(Kind::Link)),
+                            .class(skin::ACCENT),
                     )
                     .push(
                         widget::text(tr!("Lien enregistré", "Saved link"))
@@ -526,7 +545,7 @@ impl App {
                     .push(
                         widget::text(tr_format!("{count} fichier(s)", "{count} file(s)"))
                             .size(18)
-                            .class(skin::kind_color(Kind::Files)),
+                            .class(skin::ACCENT),
                     )
                     .push(
                         widget::text(tr!("Emplacements d’origine", "Original locations"))
@@ -565,7 +584,7 @@ impl App {
             .clip(true)
             .width(Length::Fill)
             .height(height)
-            .class(skin::surface(skin::PREVIEW, 8.0, Color::TRANSPARENT))
+            .class(cosmic::theme::Container::Card)
             .into()
     }
     /// Poignée de glisser-déposer, identique dans les deux densités.
@@ -610,20 +629,27 @@ impl App {
                     .class(skin::button(clip.pinned, 6.0, false))
                     .on_press(Message::Pin(clip.id.clone())),
             )
-            .push(preview);
+            .push(skin::hint(
+                preview,
+                tr!("Aperçu de la copie", "Preview clip"),
+            ));
         if !compact {
             row = row.push(widget::Space::new().width(Length::Fill));
         }
-        row.push(
+        row.push(skin::hint(
             widget::button::icon(skin::icon("edit-delete-symbolic"))
                 .class(skin::button(false, 6.0, false))
                 .on_press(Message::Delete(clip.id.clone())),
-        )
+            tr!("Supprimer cette copie", "Delete this clip"),
+        ))
         .spacing(2)
         .align_y(iced::Alignment::Center)
         .into()
     }
     fn card<'a>(&self, clip: &'a Clip, index: usize) -> Element<'a, Message> {
+        if self.is_popup() {
+            return self.card_list(clip, index);
+        }
         match self.settings.density {
             Density::Compact => self.card_list(clip, index),
             Density::Comfortable => self.card_grid(clip, index),
@@ -635,11 +661,7 @@ impl App {
             .push(
                 widget::row([])
                     .push(skin::icon(clip.kind.icon()).icon().size(13))
-                    .push(
-                        widget::text(clip.kind.label())
-                            .size(11)
-                            .class(skin::kind_color(clip.kind)),
-                    )
+                    .push(widget::text(clip.kind.label()).size(11).class(skin::ACCENT))
                     .push(widget::Space::new().width(Length::Fill))
                     .push(
                         widget::text(if index < MAX_SHORTCUTS {
@@ -688,21 +710,16 @@ impl App {
         .padding(10)
         .width(Length::Fill)
         .class(skin::button(self.selected == index, 10.0, true));
-        widget::row([])
+        widget::column([])
             .push(copy)
             .push(self.actions(clip, true))
-            .spacing(6)
-            .align_y(iced::Alignment::Center)
+            .spacing(4)
             .into()
     }
     fn card_grid<'a>(&self, clip: &'a Clip, index: usize) -> Element<'a, Message> {
         let header = widget::row([])
             .push(skin::icon(clip.kind.icon()).icon().size(14))
-            .push(
-                widget::text(clip.kind.label())
-                    .size(11)
-                    .class(skin::kind_color(clip.kind)),
-            )
+            .push(widget::text(clip.kind.label()).size(11).class(skin::ACCENT))
             .push(widget::Space::new().width(Length::Fill))
             .push(
                 widget::text(if index < MAX_SHORTCUTS {
@@ -718,11 +735,7 @@ impl App {
             .push(
                 widget::container(widget::Space::new().height(3))
                     .width(Length::Fill)
-                    .class(skin::surface(
-                        skin::kind_color(clip.kind),
-                        2.0,
-                        Color::TRANSPARENT,
-                    )),
+                    .class(cosmic::theme::Container::Primary),
             )
             .push(header)
             .push(self.preview(clip, 124.0))
@@ -808,6 +821,7 @@ impl cosmic::Application for App {
         let mut app = Self {
             core,
             popup: None,
+            history: None,
             instance,
             demo,
             monitor: if demo {
@@ -871,8 +885,9 @@ impl cosmic::Application for App {
             .on_press(Message::Toggle)
             .into()
     }
-    fn view_window(&self, _: Id) -> Element<'_, Message> {
-        let compact = self.settings.density == Density::Compact || self.width() < 600.0;
+    fn view_window(&self, id: Id) -> Element<'_, Message> {
+        let compact =
+            self.is_popup() || self.settings.density == Density::Compact || self.width() < 600.0;
         let paused = self.monitor.paused() && !self.demo;
         let mut identity = widget::column([]).push(
             widget::text("Nebula Paste")
@@ -931,21 +946,39 @@ impl cosmic::Application for App {
             )
             .push(identity.spacing(3))
             .push(widget::Space::new().width(Length::Fill))
-            .push(paste_button)
-            .push(pause_button)
-            .push(
+            .push(skin::hint(
+                paste_button,
+                tr!("Changer le mode de collage", "Change paste mode"),
+            ))
+            .push(skin::hint(
+                pause_button,
+                tr!(
+                    "Suspendre ou reprendre la capture",
+                    "Pause or resume capture"
+                ),
+            ))
+            .push(skin::hint(
                 widget::button::icon(skin::icon("emblem-system-symbolic"))
                     .class(skin::button(self.settings_open, 8.0, false))
                     .on_press(Message::Settings(!self.settings_open)),
-            )
-            .push(
+                tr!("Préférences", "Preferences"),
+            ))
+            .push(skin::hint(
                 widget::button::icon(skin::icon("window-close-symbolic"))
                     .class(skin::button(false, 8.0, false))
-                    .on_press(Message::Toggle),
-            )
+                    .on_press(Message::CloseView),
+                tr!("Fermer", "Close"),
+            ))
             .spacing(if compact { 4 } else { 10 })
             .align_y(iced::Alignment::Center);
         let mut layout = widget::column([]).push(title).spacing(14);
+        if self.is_popup() {
+            layout = layout.push(
+                widget::button::text(tr!("Ouvrir l’historique complet", "Open full history"))
+                    .on_press(Message::OpenHistory)
+                    .width(Length::Fill),
+            );
+        }
         if paused {
             layout = layout.push(
                 widget::container(
@@ -981,42 +1014,37 @@ impl cosmic::Application for App {
                 )
                 .padding([6, 10])
                 .width(Length::Fill)
-                .class(skin::surface(skin::PREVIEW, 8.0, skin::LINE)),
+                .class(cosmic::theme::Container::Card),
             );
         } else if self.pause_menu {
-            let mut durations = widget::row([])
-                .push(
-                    widget::text(tr!("Suspendre la capture", "Pause capture"))
-                        .size(12)
-                        .class(skin::MUTED),
-                )
-                .spacing(6)
-                .align_y(iced::Alignment::Center);
-            for minutes in PAUSES {
-                durations = durations.push(
+            let mut choices: Vec<Element<'_, Message>> = PAUSES
+                .iter()
+                .map(|minutes| {
                     widget::button::text(format!("{minutes} min"))
-                        .class(skin::button(false, 7.0, false))
-                        .on_press(Message::PauseFor(Some(minutes))),
-                );
-            }
+                        .on_press(Message::PauseFor(Some(*minutes)))
+                        .into()
+                })
+                .collect();
+            choices.push(
+                widget::button::text(tr!("Sans limite", "Until resumed"))
+                    .on_press(Message::PauseFor(None))
+                    .into(),
+            );
+            choices.push(
+                widget::button::text(tr!("Annuler", "Cancel"))
+                    .on_press(Message::PauseMenu(false))
+                    .into(),
+            );
             layout = layout.push(
                 widget::container(
-                    durations
-                        .push(
-                            widget::button::text(tr!("Sans limite", "Until resumed"))
-                                .class(skin::button(false, 7.0, false))
-                                .on_press(Message::PauseFor(None)),
-                        )
-                        .push(widget::Space::new().width(Length::Fill))
-                        .push(
-                            widget::button::text(tr!("Annuler", "Cancel"))
-                                .class(skin::button(false, 7.0, false))
-                                .on_press(Message::PauseMenu(false)),
-                        ),
+                    widget::column([])
+                        .push(widget::text(tr!("Suspendre la capture", "Pause capture")))
+                        .push(widget::flex_row(choices).width(Length::Fill).spacing(6))
+                        .spacing(8),
                 )
-                .padding([6, 10])
+                .padding(10)
                 .width(Length::Fill)
-                .class(skin::surface(skin::PREVIEW, 8.0, skin::LINE)),
+                .class(cosmic::theme::Container::Card),
             );
         }
         if self.settings_open {
@@ -1082,7 +1110,7 @@ impl cosmic::Application for App {
                             .spacing(8),
                     )
                     .push(
-                        widget::row([])
+                        widget::column([])
                             .push(
                                 widget::button::suggested(if self.settings.paste_mode == 0 {
                                     tr!("Copier le contenu", "Copy content")
@@ -1105,11 +1133,11 @@ impl cosmic::Application for App {
                                 ),
                             )
                             .spacing(8)
-                            .align_y(iced::Alignment::Center),
+                            .align_x(iced::Alignment::Start),
                     );
                 if clip.kind == Kind::Image {
                     layout = layout.push(
-                        widget::row([])
+                        widget::column([])
                             .push(
                                 widget::button::text(if self.ocr_busy {
                                     tr!("Lecture de l’image…", "Reading image…")
@@ -1126,7 +1154,6 @@ impl cosmic::Application for App {
                                     .class(skin::button(false, 8.0, false))
                                     .on_press(Message::OcrLanguage),
                             )
-                            .push(widget::Space::new().width(Length::Fill))
                             .push(
                                 widget::text(tr!(
                                     "OCR intégré · hors ligne",
@@ -1135,7 +1162,7 @@ impl cosmic::Application for App {
                                 .size(12)
                                 .class(skin::MUTED),
                             )
-                            .align_y(iced::Alignment::Center)
+                            .align_x(iced::Alignment::Start)
                             .spacing(8),
                     );
                 }
@@ -1351,11 +1378,11 @@ impl cosmic::Application for App {
             widget::container(state)
                 .padding([8, 10])
                 .width(Length::Fill)
-                .class(skin::surface(skin::PREVIEW, 8.0, skin::LINE)),
+                .class(cosmic::theme::Container::Card),
         );
         if self.clear_confirm {
             layout = layout.push(
-                widget::row([])
+                widget::column([])
                     .push(
                         widget::text(tr!(
                             "Effacer l’historique hors favoris ?",
@@ -1379,17 +1406,32 @@ impl cosmic::Application for App {
         let content = widget::container(layout)
             .width(self.width())
             .padding(if compact { 12 } else { 18 })
-            .class(skin::surface(skin::BG, 16.0, skin::LINE));
-        if self.demo {
-            content.into()
+            .class(cosmic::theme::Container::Transparent);
+        if self.demo || self.history == Some(id) {
+            let body = widget::scrollable(content).height(Length::Fill);
+            let mut window = widget::column([]);
+            if !self.demo {
+                window = window.push(
+                    widget::header_bar()
+                        .title("Nebula Paste")
+                        .on_close(Message::CloseView)
+                        .on_drag(Message::DragHistory)
+                        .focused(self.core.focused_window() == Some(id)),
+                );
+            }
+            widget::container(window.push(body))
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .class(cosmic::theme::Container::WindowBackground)
+                .into()
         } else {
             self.core
                 .applet
-                .popup_container(content)
+                .popup_container(widget::scrollable(content).height(Length::Shrink))
                 .limits(
                     Limits::NONE
-                        .min_width(WIDTH_MIN)
-                        .max_width(WIDTH_WIDE)
+                        .min_width(WIDTH_POPUP)
+                        .max_width(WIDTH_POPUP)
                         .max_height(850.0),
                 )
                 .into()
@@ -1398,8 +1440,14 @@ impl cosmic::Application for App {
     fn subscription(&self) -> Subscription<Message> {
         let mut subscriptions =
             vec![iced::time::every(Duration::from_millis(100)).map(|_| Message::Tick)];
-        if self.popup.is_some() || self.demo {
+        if self.popup.is_some() || self.history.is_some() || self.demo {
             subscriptions.push(iced::event::listen_with(|event, status, id| {
+                if matches!(
+                    event,
+                    iced::Event::Window(iced::window::Event::CloseRequested)
+                ) {
+                    return Some(Message::Closed(id));
+                }
                 // La largeur réellement accordée par le compositeur pilote la mise en page.
                 if let iced::Event::Window(iced::window::Event::Resized(size)) = event {
                     return Some(Message::WindowResized(id, size.width));
@@ -1454,7 +1502,7 @@ impl cosmic::Application for App {
                 } else if self.detail.is_some() {
                     self.detail = None;
                 } else {
-                    return self.update(Message::Toggle);
+                    return self.update(Message::CloseView);
                 }
             }
             Message::Drag(value) => {
@@ -1475,7 +1523,7 @@ impl cosmic::Application for App {
             }
             Message::Density => {
                 self.settings.density = self.settings.density.next();
-                self.viewport = self.ideal_width();
+                // Density changes must not invent a new compositor-granted width.
                 self.reset();
                 self.refresh();
                 self.flash(tr_format!(
@@ -1522,7 +1570,7 @@ impl cosmic::Application for App {
                 self.pause_menu = false;
             }
             Message::WindowResized(id, width) => {
-                if self.popup == Some(id) || self.demo {
+                if self.popup == Some(id) || self.history == Some(id) || self.demo {
                     return self.update(Message::Viewport(width));
                 }
             }
@@ -1597,7 +1645,7 @@ impl cosmic::Application for App {
                 }
             }
             Message::PasteReady(terminal) => {
-                if self.popup.is_some() || self.demo {
+                if self.popup.is_some() || self.history.is_some() || self.demo {
                     self.copying = false;
                     return Task::none();
                 }
@@ -1626,6 +1674,47 @@ impl cosmic::Application for App {
                     }
                 }
             }
+            Message::OpenHistory => {
+                if self.demo || self.history.is_some() {
+                    return Task::none();
+                }
+                let close = self.popup.take().map_or_else(Task::none, destroy_popup);
+                let (id, open) = iced::window::open(iced::window::Settings {
+                    size: iced::Size::new(940.0, 780.0),
+                    min_size: Some(iced::Size::new(360.0, 400.0)),
+                    decorations: false,
+                    exit_on_close_request: false,
+                    ..Default::default()
+                });
+                self.history = Some(id);
+                self.viewport = self.ideal_width();
+                self.dragging = false;
+                self.reset();
+                let title = self.set_window_title("Nebula Paste".into(), id);
+                return close
+                    .chain(open.map(|id| cosmic::Action::App(Message::HistoryOpened(id))))
+                    .chain(title);
+            }
+            Message::HistoryOpened(id) => {
+                if self.history == Some(id) {
+                    return widget::text_input::focus(self.search_id.clone());
+                }
+            }
+            Message::DragHistory => {
+                if let Some(id) = self.history {
+                    return iced::window::drag(id);
+                }
+            }
+            Message::CloseView => {
+                if self.demo {
+                    return iced::exit();
+                }
+                self.dragging = false;
+                if let Some(id) = self.history.take() {
+                    return iced::window::close(id);
+                }
+                return self.popup.take().map_or_else(Task::none, destroy_popup);
+            }
             Message::Toggle => {
                 if self.demo {
                     return iced::exit();
@@ -1634,6 +1723,12 @@ impl cosmic::Application for App {
                     self.dragging = false;
                     return destroy_popup(id);
                 }
+                let close_history = self
+                    .history
+                    .take()
+                    .map_or_else(Task::none, iced::window::close);
+                self.viewport = WIDTH_POPUP;
+                self.reset();
                 let Some(parent) = self.core.main_window_id() else {
                     return Task::none();
                 };
@@ -1650,13 +1745,19 @@ impl cosmic::Application for App {
                     .get_popup_settings(parent, id, None, None, None);
                 settings.positioner.size_limits = Limits::NONE
                     .min_width(WIDTH_MIN)
-                    .max_width(WIDTH_WIDE)
+                    .max_width(WIDTH_POPUP)
                     .min_height(200.0)
                     .max_height(900.0);
-                return get_popup(settings)
+                return close_history
+                    .chain(get_popup(settings))
                     .chain(widget::text_input::focus(self.search_id.clone()));
             }
             Message::Closed(id) => {
+                if self.history == Some(id) {
+                    self.history = None;
+                    self.dragging = false;
+                    return iced::window::close(id);
+                }
                 if self.popup == Some(id) {
                     self.dragging = false;
                     self.popup = None;
@@ -1719,10 +1820,13 @@ impl cosmic::Application for App {
                 }
                 let mut bytes = [0; 16];
                 if let Some(instance) = &self.instance
-                    && let Ok(6) = instance.socket.recv(&mut bytes)
-                    && &bytes[..6] == b"toggle"
+                    && let Ok(count) = instance.socket.recv(&mut bytes)
                 {
-                    return self.update(Message::Toggle);
+                    match &bytes[..count] {
+                        b"toggle" => return self.update(Message::Toggle),
+                        b"history" => return self.update(Message::OpenHistory),
+                        _ => {}
+                    }
                 }
             }
             Message::Search(query) => {
@@ -1774,7 +1878,11 @@ impl cosmic::Application for App {
                     self.copying = false;
                     return Task::none();
                 }
-                let close = self.popup.take().map_or_else(Task::none, destroy_popup);
+                let close = if let Some(id) = self.history.take() {
+                    iced::window::close(id)
+                } else {
+                    self.popup.take().map_or_else(Task::none, destroy_popup)
+                };
                 if self.settings.paste_mode != 0 {
                     let terminal = self.settings.paste_mode == 2;
                     return close.chain(Task::perform(
@@ -1944,7 +2052,7 @@ impl cosmic::Application for App {
         Task::none()
     }
     fn style(&self) -> Option<iced::theme::Style> {
-        Some(cosmic::applet::style())
+        None
     }
 }
 
@@ -2104,5 +2212,46 @@ mod tests {
         assert!(app.clips.iter().any(|c| c.id == old.id));
         let _ = app.update(Message::ApplyRetention);
         assert!(!app.clips.iter().any(|c| c.id == old.id));
+    }
+    #[test]
+    fn popup_is_compact_regardless_of_saved_density() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        app.demo = false;
+        assert_eq!(app.width(), WIDTH_POPUP);
+        assert_eq!(app.columns(), 1);
+        assert_eq!(app.page_size(), 5);
+        let _ = app.update(Message::Density);
+        assert_eq!(app.width(), WIDTH_POPUP);
+        assert_eq!(app.columns(), 1);
+    }
+
+    #[test]
+    fn history_close_preserves_capture_and_ignores_stale_popup_close() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        app.demo = false;
+        let old_popup = Id::unique();
+        app.popup = Some(old_popup);
+        let paused = app.monitor.paused();
+        let count = app.clips.len();
+        let _ = app.update(Message::OpenHistory);
+        let history = app.history.unwrap();
+        assert!(app.popup.is_none());
+        assert_eq!(app.width(), WIDTH_WIDE);
+        let _ = app.update(Message::Closed(old_popup));
+        assert_eq!(app.history, Some(history));
+        let _ = app.update(Message::CloseView);
+        assert!(app.history.is_none());
+        assert_eq!(app.monitor.paused(), paused);
+        assert_eq!(app.clips.len(), count);
+        assert!(app.store.is_some());
+    }
+    #[test]
+    fn changing_density_preserves_the_granted_window_width() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        let _ = app.update(Message::Viewport(360.0));
+        let _ = app.update(Message::Density);
+        let _ = app.update(Message::Density);
+        assert_eq!(app.width(), 360.0);
+        assert_eq!(app.columns(), 1);
     }
 }

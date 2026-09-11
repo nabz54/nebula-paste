@@ -2,6 +2,17 @@
 
 [Français](CHANGELOG.fr.md)
 
+## 0.6.0-beta.1 — COSMIC integration
+
+- Follow the system theme for surfaces, controls, text and symbolic icons.
+- Keep the panel popup compact (360 logical units, five clips per page).
+- Open the shared history in a separate resizable window, without a second clipboard monitor or database writer.
+- Add `--history` and a desktop launcher requiring the running panel applet.
+- Preserve capture when closing history; close the active view before direct paste.
+- Add bilingual action tooltips, light/dark preview rendering, lifecycle regression tests and CI checks.
+- Retain all 0.5 history/preferences and embedded OCR; no data migration.
+- Live Fedora COSMIC testing remains required. See [test guide](docs/TESTING-0.6.en.md).
+
 ## 0.5.0 — Unreleased
 
 ### Added

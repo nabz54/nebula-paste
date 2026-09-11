@@ -1,5 +1,15 @@
 # Validation courante — 0.5.0-dev.1, 10 septembre 2026
 
+## 0.6.0-beta.1
+
+- `cargo check --locked --all-targets` réussi avec Rust 1.93.0 sous Ubuntu 24.04 : compilation du moteur OCR embarqué et vérification des types des tests de régression incluses.
+- `cargo fmt --check`, `git diff --check`, syntaxe shell, lecture TOML et SVG : réussis.
+- Ces contrôles ne prouvent ni l’exécution des tests, ni l’édition de liens release, ni le fonctionnement dans Fedora COSMIC. La CI est configurée pour exécuter les tests et vérifier l’OCR embarqué.
+- [Procédure de test Fedora](docs/TESTING-0.6.md).
+
+Les résultats ci-dessous concernent les versions précédentes.
+
+
 - Compilation de développement Linux réussie avec Rust 1.98.1 et dépendances verrouillées.
 - **33 tests réussis** : 4 bibliothèque/préférences/langues, 17 application/OCR/transferts, 12 historique/intégrité/rétention/restauration.
 - `cargo fmt --check` et syntaxe des scripts Bash validés.

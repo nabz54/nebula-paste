@@ -8,7 +8,7 @@ Un gestionnaire de presse-papiers local en **Rust/libcosmic** pour Fedora COSMIC
 
 - Recherche dans le texte des images grâce à l’OCR local embarqué, à activer dans les préférences.
 - Collections persistantes : créer, renommer, supprimer, classer une copie par glisser-déposer interne. Supprimer une collection conserve ses copies.
-- Barre latérale dans la fenêtre d’historique à partir de 720 unités logiques ; popup du panneau toujours compact.
+- Barre latérale dans la fenêtre d’historique à partir de 720 unités logiques ; popup du panneau compact ou élargi.
 - Interface française et anglaise, thème COSMIC, favoris, rétention, annulation de suppression et extraction OCR manuelle conservés.
 - Construction d’un paquet RPM Fedora avec dépendances Rust vendues et compilation hors ligne dans rpmbuild.
 
@@ -28,6 +28,8 @@ Rust 1.93 ou plus récent est requis. Le dépôt public se clone sans connexion 
 Le moteur Tesseract, Leptonica et les modèles français/anglais sont incorporés dans le binaire. Aucun paquet Tesseract ni téléchargement de modèle à l’utilisation. La première compilation peut être longue.
 
 ## Utiliser
+
+Dans le popup, **Agrandir / Réduire** bascule entre la liste compacte et la grille élargie, sans effacer la recherche ni les filtres. Le choix est enregistré. Les collections restent accessibles dans les onglets ; **Fenêtre séparée** ouvre l’historique indépendant. La surface du panneau conserve uniquement son icône. La largeur du popup peut être réduite par COSMIC si l’écran manque de place.
 
 Clique sur l’icône du panneau, recherche ou filtre les copies, puis clique sur une carte pour recopier son contenu original. Ouvre **Historique** pour la fenêtre complète. Le lanceur « Nebula Paste — Historique » et `nebula-paste --history` nécessitent l’applet déjà active.
 

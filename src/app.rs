@@ -1913,6 +1913,8 @@ impl cosmic::Application for App {
                     None,
                     None,
                 );
+                // Slide, flip and resize on either axis when constrained by the output.
+                settings.positioner.constraint_adjustment = 63;
                 settings.positioner.size_limits = Limits::NONE
                     .min_width(WIDTH_MIN)
                     .max_width(self.ideal_width())
@@ -2309,6 +2311,8 @@ impl cosmic::Application for App {
                     .core
                     .applet
                     .get_popup_settings(parent, id, None, None, None);
+                // Slide, flip and resize on either axis when constrained by the output.
+                settings.positioner.constraint_adjustment = 63;
                 settings.positioner.size_limits = Limits::NONE
                     .min_width(WIDTH_MIN)
                     .max_width(self.ideal_width())
@@ -2949,5 +2953,4 @@ mod tests {
         assert_eq!(app.width(), WIDTH_POPUP);
         assert_eq!(app.page_size(), 5);
     }
-
 }

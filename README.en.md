@@ -8,7 +8,7 @@ A local **Rust/libcosmic clipboard manager** for Fedora COSMIC: text, images, li
 
 - Search image text using embedded local OCR, enabled explicitly in Preferences.
 - Persistent collections: create, rename, delete and file clips by internal drag and drop. Deleting a collection keeps its clips.
-- History sidebar at widths of 720 logical units or more; the panel popup stays compact.
+- History sidebar at widths of 720 logical units or more; the panel popup supports compact and expanded modes.
 - French/English UI, COSMIC theme, favorites, retention, deletion undo and manual OCR extraction retained.
 - Fedora RPM build with vendored Rust dependencies and offline compilation inside rpmbuild.
 
@@ -28,6 +28,8 @@ Requires Rust 1.93 or newer. Cloning the public repository needs no GitHub login
 Tesseract, Leptonica and French/English models are embedded in the executable. No system Tesseract package or runtime model download is needed. The first build can take a while.
 
 ## Usage
+
+Use **Expand / Collapse** in the popup to switch between the compact list and the wider grid without clearing search or filters. Your choice is saved. Collections remain accessible in tabs; **Separate window** opens independent history. The panel surface renders only its icon. COSMIC may reduce popup width when screen space is limited.
 
 Open the panel applet, search/filter, then click a card to copy its original content. Open **History** for the full window. The history desktop launcher and `nebula-paste --history` require the panel applet to be running.
 

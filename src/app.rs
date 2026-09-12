@@ -1251,9 +1251,10 @@ impl cosmic::Application for App {
             ))
             .spacing(if compact { 4 } else { 10 })
             .align_y(iced::Alignment::Center);
-        let mut layout = widget::column([])
-            .push(title)
-            .spacing(if self.is_popup() { 8 } else { 14 });
+        let mut layout =
+            widget::column([])
+                .push(title)
+                .spacing(if self.is_popup() { 8 } else { 14 });
         if self.is_popup() {
             layout = layout.push(
                 widget::button::text(tr!("Ouvrir l’historique complet", "Open full history"))

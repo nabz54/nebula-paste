@@ -2,6 +2,17 @@
 
 [English](CHANGELOG.md)
 
+## 0.7.0-beta.1 — Recherche et collections
+
+- Recherche OCR locale dans les images, désactivée par défaut ; index persistant limité à 16 384 caractères par image, sans copies supplémentaires.
+- Traitement séquentiel en arrière-plan, sélection de langue, progression, texte reconnu dans l’aperçu et réindexation manuelle.
+- Effacement de l’index à la désactivation et avec les copies supprimées ; rejet des résultats périmés après suppression ou changement de réglage.
+- Collections persistantes, y compris vides : création, renommage atomique, suppression avec confirmation conservant les copies et favoris.
+- Migration automatique des catégories 0.6, barre latérale adaptative et classement par glisser-déposer interne.
+- Paquet RPM amont Fedora, dépendances Rust vendues, licences incluses et workflow de construction.
+- Documentation et guide de test français/anglais ; tests de migration, recherche, conservation des données et cycle OCR.
+- Bêta : validation interactive Fedora COSMIC encore nécessaire. Les extraits réutilisables sont reportés à une version ultérieure.
+
 ## 0.6.0-beta.1 — Intégration COSMIC
 
 - Surfaces, contrôles, textes et icônes symboliques suivent le thème système.

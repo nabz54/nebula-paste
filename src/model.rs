@@ -139,6 +139,16 @@ impl Clip {
         favorites: bool,
         category: &str,
     ) -> bool {
+        self.matches_with_ocr(query, kind, favorites, category, "")
+    }
+    pub fn matches_with_ocr(
+        &self,
+        query: &str,
+        kind: Option<Kind>,
+        favorites: bool,
+        category: &str,
+        ocr: &str,
+    ) -> bool {
         (!favorites || self.pinned)
             && kind.is_none_or(|k| k == self.kind)
             && (category.is_empty() || self.category == category)
@@ -147,6 +157,7 @@ impl Clip {
                 self.text.to_lowercase().contains(&word)
                     || self.title.to_lowercase().contains(&word)
                     || self.category.to_lowercase().contains(&word)
+                    || ocr.to_lowercase().contains(&word)
             })
     }
 }

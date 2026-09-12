@@ -7,3 +7,6 @@
 .env.*
 *.log
 /*.zip
+
+/dist/
+__pycache__/

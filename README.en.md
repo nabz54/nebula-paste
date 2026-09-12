@@ -1,78 +1,55 @@
-# Nebula Paste
+# Nebula Paste — COSMIC applet
 
-## 0.6.0-beta.1 — COSMIC integration
+[Français](README.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
 
-System theme, compact panel popup and a separate shared history window. [Installation and test guide](docs/TESTING-0.6.en.md). Use branch **v0.6-cosmic**. Live desktop testing is pending.
+A local **Rust/libcosmic clipboard manager** for Fedora COSMIC: text, images, links, colors, code and file references. An independent project, not affiliated with Supaste or System76.
 
-The screenshots and 0.5 notes below document the previous version.
+## 0.7.0-beta.1 — Search and collections
 
+- Search image text using embedded local OCR, enabled explicitly in Preferences.
+- Persistent collections: create, rename, delete and file clips by internal drag and drop. Deleting a collection keeps its clips.
+- History sidebar at widths of 720 logical units or more; the panel popup stays compact.
+- French/English UI, COSMIC theme, favorites, retention, deletion undo and manual OCR extraction retained.
+- Fedora RPM build with vendored Rust dependencies and offline compilation inside rpmbuild.
 
-[Français](README.md) · [Changelog](CHANGELOG.md) · [Validation](VALIDATION.md)
+This is a **beta requiring live COSMIC desktop testing**. [0.7 test guide](docs/TESTING-0.7.en.md) · [RPM build/install](packaging/README.md). Older screenshots in `docs/` depict 0.5.
 
-A native **Rust/libcosmic clipboard applet for COSMIC on Linux**. Nebula Paste keeps text, images, links, colors, code and file references in a local history. An independent project inspired by Supaste; not affiliated with Supaste or System76.
-
-![Nebula Paste in English](docs/preview-0.5-en.png)
-
-## Version 0.5 — development preview
-
-- Original full-color application icon and symbolic panel icon; slate surfaces and cyan selection.
-- Responsive grid and compact list, with previews, favorites, categories and outgoing drag-and-drop.
-- Persistent display, interface language, OCR language, retention and paste preferences.
-- English or French interface. The default follows the system locale; use Preferences → Language to override it. OCR language is independent.
-- Plain-text copying from Preview or **Ctrl+Shift+C**. Text and source code are preserved exactly; local file URIs become decoded paths. Images require OCR.
-- Undo the latest deletion for **12 seconds**, preserving its date, favorite and category. Undo does not overwrite a recaptured clip or evict another clip when history is full.
-- Temporary pauses of **5, 15 or 60 minutes**, a countdown and automatic resume. Indefinite pause is also available.
-- Visible copy confirmation and an option to keep the popup open after copying. Direct paste always closes it before sending the shortcut.
-
-This branch is a development preview. See [VALIDATION.en.md](VALIDATION.en.md) for completed checks and remaining live COSMIC testing. The screenshot above was rendered from the actual application widgets.
-
-## Build and install on Fedora COSMIC
-
-Install a recent stable Rust toolchain (Rust 1.93 or newer) and the native dependencies:
+## Build and install
 
 ```bash
-sudo dnf install git gcc gcc-c++ make cmake pkgconf-pkg-config libxkbcommon-devel wayland-devel
-git clone https://github.com/nabz54/nebula-paste.git
+sudo dnf install git rust cargo gcc gcc-c++ cmake make pkgconf-pkg-config libxkbcommon-devel wayland-devel fontconfig-devel freetype-devel
+git clone --branch v0.7-search-collections https://github.com/nabz54/nebula-paste.git
 cd nebula-paste
-git switch v0.5-design
 bash scripts/install.sh
 ```
 
-Then add Nebula Paste from COSMIC Settings → Desktop → Panel → Applets. Remove and re-add an already running applet after an update. Existing history is preserved.
+Requires Rust 1.93 or newer. Cloning the public repository needs no GitHub login. Remove the previous applet from the panel before updating, then add **Nebula Paste** in COSMIC panel settings. Existing history and preferences are retained; 0.6 categories become collections on first startup.
 
-Tesseract 5.5.1, Leptonica 1.85.0 and the French/English OCR models are bundled. No system Tesseract executable or model download is needed at runtime. Leptonica's two source archive parts are automatically reassembled during the build. Native libraries still require C/C++ build tools. Optional direct paste uses `wtype` (`sudo dnf install wtype`).
+Tesseract, Leptonica and French/English models are embedded in the executable. No system Tesseract package or runtime model download is needed. The first build can take a while.
 
-## Use
+## Usage
 
-Set a COSMIC shortcut such as **Super+V** to `~/.local/bin/nebula-paste --toggle`. The applet must already be running.
+Open the panel applet, search/filter, then click a card to copy its original content. Open **History** for the full window. The history desktop launcher and `nebula-paste --history` require the panel applet to be running.
 
-| Shortcut | Action |
-| --- | --- |
-| Ctrl+1…9 | Copy the corresponding item, if present on the current page |
-| Alt+Left / Right | Move selection |
-| Alt+Up / Down | Move by row |
-| Ctrl+F | Search |
-| Ctrl+Shift+C | Copy the previewed or selected item as plain text |
-| Enter | Copy selection |
-| Escape | Go back or close |
+Enable image search in **Preferences**. Background indexing processes one image at a time using the selected OCR language. Results participate in existing search without adding text clips. Image details show recognized text for review. Disabling the option erases the index; **Reindex** retries failures. Pausing capture prevents new automatic OCR jobs from starting; an already running job may finish.
 
-Click the settings icon for language, grid/list, retention and paste preferences. Choose a retention duration, then explicitly apply it; old unpinned clips are deleted only when the new duration is applied. Favorites are protected. “Clear history” is not undoable and clears pending undo.
+Create a collection through **Manage collections**, then drag a clip by its handle onto the sidebar collection. You can also enter a collection in clip details. Each clip belongs to at most one collection; favorites are independent. Incoming drops from external applications are not supported.
 
-Settings are saved atomically to `$XDG_CONFIG_HOME/nebula-paste/settings.conf` (normally `~/.config/nebula-paste/settings.conf`). History is stored in `$XDG_DATA_HOME/nebula-paste/history.sqlite3` (normally `~/.local/share/nebula-paste/history.sqlite3`). It is **not encrypted**. Capture pauses do not remove existing clips and do not survive process restarts. File entries are references, not file backups.
+**Shortcuts:** Ctrl+F search, Alt+arrows select, Enter copy, Ctrl+1…9 copy a page entry, Ctrl+Shift+C copy plain text, Escape back/close. Copy-only mode requires pasting with Ctrl+V afterwards. Optional direct paste requires `sudo dnf install wtype` and COSMIC virtual keyboard support; it targets whichever application has focus after closing.
 
-Direct paste depends on COSMIC's virtual-keyboard support and the target application's shortcuts. A successful shortcut send does not prove that the target pasted it. Diagnostics from external programs may remain in their original language.
+## Local data and limits
 
-## Preview, OCR and tests
+History and OCR index are stored in the local Nebula Paste SQLite database with private permissions. Data is not encrypted and is never sent to an OCR service. Index text is limited to 16,384 characters per image and is removed with the source clip. Favorites survive retention and history clearing. Limits: 500 clips, 128 MiB content, 16 MiB per clip, at most 128 newly managed collections (legacy categories are preserved).
+
+Search is case insensitive and combines words with type, favorite and collection filters; it is not fuzzy search. OCR may be inaccurate. File clips remain references to their original paths.
+
+## Development
 
 ```bash
-cargo build --locked
-cargo run --locked -- --preview
-cargo test --locked
 cargo fmt --check
+cargo test --locked
+cargo build --locked
 bash scripts/check-embedded-ocr.sh target/debug/nebula-paste
-nebula-paste --ocr image.png fra+eng
 ```
 
-Preview mode uses synthetic in-memory data and disables clipboard capture, copying and external drag-and-drop. `--render-preview output.png` renders the actual widget tree without a display server.
-
-Contribution guidelines: [CONTRIBUTING.en.md](CONTRIBUTING.en.md). Source license: **MPL-2.0**. Bundled components retain the licenses in `vendor/licenses/`. Uninstall with `bash scripts/uninstall.sh`; history and preferences are preserved.
+`nebula-paste --preview` uses synthetic data with capture and copying disabled. The embedded OCR engine is C/C++; the application is Rust. Native sources, models, licenses and checksums are in `vendor/`. See [VALIDATION.md](VALIDATION.md) and the [test guide](docs/TESTING-0.7.en.md) for validation limits.

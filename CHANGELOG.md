@@ -2,6 +2,17 @@
 
 [Français](CHANGELOG.fr.md)
 
+## 0.7.0-beta.1 — Search and collections
+
+- Opt-in local image-text search with a persistent index capped at 16,384 characters per image and no extra text clips.
+- Sequential background OCR, language selection, progress, recognized text in details and manual reindexing.
+- Index erasure on disable and source deletion; stale results rejected after deletion or settings changes.
+- Persistent collections, including empty ones: creation, atomic rename and confirmed deletion preserving clips and favorites.
+- Automatic 0.6 category migration, adaptive history sidebar and internal drag-to-file.
+- Upstream Fedora RPM packaging with vendored Rust dependencies, license inventory and build workflow.
+- French/English documentation and test guides; migration, search, data preservation and OCR lifecycle regression tests.
+- Beta: interactive Fedora COSMIC validation still required. Reusable snippets deferred to a later release.
+
 ## 0.6.0-beta.1 — COSMIC integration
 
 - Follow the system theme for surfaces, controls, text and symbolic icons.

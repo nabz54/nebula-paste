@@ -1669,7 +1669,7 @@ impl cosmic::Application for App {
                     sidebar = sidebar.push(self.collection_button(name));
                 }
                 sidebar = sidebar.push(
-                    widget::button::text(tr!("Gérer les collections", "Manage collections"))
+                    widget::button::text(tr!("Gérer…", "Manage…"))
                         .on_press(Message::Collections(true)),
                 );
                 widget::row([])
@@ -2718,5 +2718,53 @@ mod tests {
         let _ = app.update(Message::IndexDone(generation, id, Ok("stale".into())));
         assert!(app.index_busy.is_none());
         assert!(app.image_index.is_empty());
+    }
+    #[test]
+    fn deleted_then_recaptured_image_rejects_old_index_result() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        app.settings.ocr_indexing = true;
+        let clip = app
+            .clips
+            .iter()
+            .find(|c| c.kind == Kind::Image)
+            .unwrap()
+            .clone();
+        let generation = app.index_generation;
+        app.index_busy = Some((generation, clip.id.clone()));
+        let _ = app.update(Message::Delete(clip.id.clone()));
+        app.store.as_mut().unwrap().insert(&clip).unwrap();
+        app.refresh();
+        let _ = app.update(Message::IndexDone(generation, clip.id, Ok("stale".into())));
+        assert!(app.image_index.is_empty());
+        assert!(app.index_busy.is_none());
+    }
+
+    #[test]
+    fn collection_changes_update_pending_undo_without_resurrecting_old_names() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        let id = app.clips[0].id.clone();
+        app.store.as_ref().unwrap().category(&id, "Work").unwrap();
+        app.refresh();
+        let _ = app.update(Message::Delete(id.clone()));
+        let _ = app.update(Message::EditCollection(Some("Work".into())));
+        let _ = app.update(Message::CollectionName("Projects".into()));
+        let _ = app.update(Message::SaveCollection);
+        assert_eq!(app.undo.as_ref().unwrap().clip.category, "Projects");
+        let _ = app.update(Message::AskDeleteCollection(Some("Projects".into())));
+        let _ = app.update(Message::DeleteCollection);
+        let _ = app.update(Message::Undo);
+        assert!(
+            app.clips
+                .iter()
+                .find(|c| c.id == id)
+                .unwrap()
+                .category
+                .is_empty()
+        );
+        assert!(
+            !app.collections
+                .iter()
+                .any(|n| n == "Work" || n == "Projects")
+        );
     }
 }

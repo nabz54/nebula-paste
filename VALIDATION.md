@@ -1,4 +1,16 @@
-# Validation courante — 0.5.0-dev.1, 10 septembre 2026
+# Validation — Nebula Paste
+
+## 0.7.0-beta.1 — 12 septembre 2026
+
+- Rust 1.93.0 : compilation de tous les composants, `cargo test --locked` et binaire de développement validés localement.
+- 45 tests réussis : préférences, historique, migration SQLite 0.6, collections, recherche OCR, effacement et rejet de résultats périmés, annulation de suppression et transferts.
+- OCR réel français/anglais/combiné validé sans programme Tesseract, sans modèles système et sans liaison dynamique Tesseract/Leptonica.
+- Rendus natifs inspectés : historique avec barre latérale, popup clair compact et gestion des collections en français. Ils ne valident pas les échanges avec le compositeur.
+- Le commit libcosmic reste `d4d71fd53e5ed6bd3a430089114dffa2da3cd498` dans Cargo.lock. Les déclarations Git ont été unifiées pour permettre le vendoring sans doublon de source.
+- Construction RPM Fedora suivie dans le workflow **Fedora RPM** de la branche 0.7 ; consulter son résultat avant de télécharger un artefact.
+- À tester sur une vraie session Fedora COSMIC : installation RPM, ajout au panneau, glisser-déposer interne, placement/focus, mise à l’échelle et thème. [Guide FR](docs/TESTING-0.7.md) / [English guide](docs/TESTING-0.7.en.md).
+
+Les résultats suivants concernent les versions précédentes.
 
 ## 0.6.0-beta.1
 

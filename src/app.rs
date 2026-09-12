@@ -107,6 +107,7 @@ struct Undo {
 #[derive(Debug, Clone)]
 pub enum Message {
     Toggle,
+    TogglePopupSize,
     Collections(bool),
     EditCollection(Option<String>),
     CollectionName(String),
@@ -375,9 +376,16 @@ impl App {
     fn is_popup(&self) -> bool {
         !self.demo && self.history.is_none()
     }
+    fn compact_popup(&self) -> bool {
+        self.is_popup() && (!self.settings.popup_expanded || self.width() < 600.0)
+    }
     fn ideal_width(&self) -> f32 {
         if self.is_popup() {
-            return WIDTH_POPUP;
+            return if self.settings.popup_expanded {
+                WIDTH_WIDE
+            } else {
+                WIDTH_POPUP
+            };
         }
         match self.settings.density {
             Density::Compact => WIDTH_COMPACT,
@@ -389,7 +397,11 @@ impl App {
     }
     fn columns(&self) -> usize {
         if self.is_popup() {
-            return 1;
+            if self.compact_popup() {
+                return 1;
+            }
+            let usable = self.width() - PADDING + CARD_SPACING;
+            return ((usable / (CARD_WIDTH + CARD_SPACING)) as usize).clamp(1, MAX_COLUMNS);
         }
         match self.settings.density {
             Density::Compact => 1,
@@ -401,7 +413,7 @@ impl App {
     }
     fn rows(&self) -> usize {
         if self.is_popup() {
-            return 5;
+            return if self.compact_popup() { 5 } else { 2 };
         }
         match self.settings.density {
             Density::Compact => 6,
@@ -851,7 +863,11 @@ impl App {
     }
     fn card<'a>(&self, clip: &'a Clip, index: usize) -> Element<'a, Message> {
         if self.is_popup() {
-            return self.card_popup(clip, index);
+            return if self.compact_popup() {
+                self.card_popup(clip, index)
+            } else {
+                self.card_grid(clip, index)
+            };
         }
         match self.settings.density {
             Density::Compact => self.card_list(clip, index),
@@ -1166,8 +1182,14 @@ impl cosmic::Application for App {
             .into()
     }
     fn view_window(&self, id: Id) -> Element<'_, Message> {
-        let compact =
-            self.is_popup() || self.settings.density == Density::Compact || self.width() < 600.0;
+        if !self.demo && self.core.main_window_id() == Some(id) {
+            return self.view();
+        }
+        let compact = if self.is_popup() {
+            self.compact_popup()
+        } else {
+            self.settings.density == Density::Compact || self.width() < 600.0
+        };
         let paused = self.monitor.paused() && !self.demo;
         let mut identity = widget::column([]).push(
             widget::text("Nebula Paste")
@@ -1257,9 +1279,21 @@ impl cosmic::Application for App {
                 .spacing(if self.is_popup() { 8 } else { 14 });
         if self.is_popup() {
             layout = layout.push(
-                widget::button::text(tr!("Ouvrir l’historique complet", "Open full history"))
-                    .on_press(Message::OpenHistory)
-                    .width(Length::Fill),
+                widget::row([])
+                    .push(
+                        widget::button::text(if self.settings.popup_expanded {
+                            tr!("Réduire", "Collapse")
+                        } else {
+                            tr!("Agrandir", "Expand")
+                        })
+                        .on_press(Message::TogglePopupSize)
+                        .width(Length::Fill),
+                    )
+                    .push(
+                        widget::button::text(tr!("Fenêtre séparée", "Separate window"))
+                            .on_press(Message::OpenHistory),
+                    )
+                    .spacing(8),
             );
         }
         if paused {
@@ -1571,7 +1605,7 @@ impl cosmic::Application for App {
                     }
                     grid = grid.push(row);
                 }
-                let height = if self.is_popup() {
+                let height = if self.compact_popup() {
                     if page.is_empty() {
                         200.0
                     } else {
@@ -1799,8 +1833,8 @@ impl cosmic::Application for App {
                 )
                 .limits(
                     Limits::NONE
-                        .min_width(WIDTH_POPUP)
-                        .max_width(WIDTH_POPUP)
+                        .min_width(WIDTH_MIN)
+                        .max_width(self.ideal_width())
                         .max_height(850.0),
                 )
                 .into()
@@ -1857,6 +1891,37 @@ impl cosmic::Application for App {
     }
     fn update(&mut self, message: Message) -> Task<cosmic::Action<Message>> {
         match message {
+            Message::TogglePopupSize => {
+                if !self.is_popup() {
+                    return Task::none();
+                }
+                self.settings.popup_expanded = !self.settings.popup_expanded;
+                self.save_settings();
+                self.viewport = self.ideal_width();
+                self.refresh();
+                self.dragging = false;
+                let Some(parent) = self.core.main_window_id() else {
+                    return Task::none();
+                };
+                let close = self.popup.take().map_or_else(Task::none, destroy_popup);
+                let id = Id::unique();
+                self.popup = Some(id);
+                let mut settings = self.core.applet.get_popup_settings(
+                    parent,
+                    id,
+                    Some((self.ideal_width() as u32, 600)),
+                    None,
+                    None,
+                );
+                settings.positioner.size_limits = Limits::NONE
+                    .min_width(WIDTH_MIN)
+                    .max_width(self.ideal_width())
+                    .min_height(200.0)
+                    .max_height(900.0);
+                return close
+                    .chain(get_popup(settings))
+                    .chain(widget::text_input::focus(self.search_id.clone()));
+            }
             Message::Collections(open) => {
                 self.collections_open = open;
                 self.settings_open = false;
@@ -2226,7 +2291,7 @@ impl cosmic::Application for App {
                     .history
                     .take()
                     .map_or_else(Task::none, iced::window::close);
-                self.viewport = WIDTH_POPUP;
+                self.viewport = self.ideal_width();
                 self.collections_open = false;
                 self.collection_delete = None;
                 self.reset();
@@ -2246,7 +2311,7 @@ impl cosmic::Application for App {
                     .get_popup_settings(parent, id, None, None, None);
                 settings.positioner.size_limits = Limits::NONE
                     .min_width(WIDTH_MIN)
-                    .max_width(WIDTH_POPUP)
+                    .max_width(self.ideal_width())
                     .min_height(200.0)
                     .max_height(900.0);
                 return close_history
@@ -2862,4 +2927,27 @@ mod tests {
                 .any(|n| n == "Work" || n == "Projects")
         );
     }
+    #[test]
+    fn popup_size_toggle_preserves_filters_and_uses_grid() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        app.demo = false;
+        app.query = "test".into();
+        app.category = "Work".into();
+        app.favorites = true;
+        let _ = app.update(Message::TogglePopupSize);
+        assert!(app.settings.popup_expanded);
+        assert_eq!(app.width(), WIDTH_WIDE);
+        assert_eq!(app.columns(), 4);
+        assert_eq!(app.page_size(), 8);
+        assert_eq!(app.query, "test");
+        assert_eq!(app.category, "Work");
+        assert!(app.favorites);
+        let _ = app.update(Message::Viewport(470.0));
+        assert_eq!(app.columns(), 1);
+        let _ = app.update(Message::TogglePopupSize);
+        assert!(!app.settings.popup_expanded);
+        assert_eq!(app.width(), WIDTH_POPUP);
+        assert_eq!(app.page_size(), 5);
+    }
+
 }

@@ -11,9 +11,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Native dependencies
-        run: sudo apt-get update && sudo apt-get install -y cmake build-essential pkg-config libxkbcommon-dev libwayland-dev libfontconfig-dev libfreetype-dev
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential pkg-config libxkbcommon-dev libwayland-dev libfontconfig-dev libfreetype-dev desktop-file-utils
       - name: Rust toolchain
         run: rustup toolchain install 1.93.0 --profile minimal --component rustfmt && rustup default 1.93.0
+      - run: desktop-file-validate resources/*.desktop
       - run: cargo fmt --check
       - run: cargo test --locked
       - run: cargo build --locked

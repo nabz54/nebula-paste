@@ -7,5 +7,5 @@ Type=Application
 Icon=io.github.nebulapaste.NebulaPaste
 Exec=nebula-paste --history
 Terminal=false
-Categories=COSMIC;Utility;
+Categories=Utility;
 Keywords=Clipboard;History;

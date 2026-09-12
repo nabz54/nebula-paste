@@ -1409,18 +1409,29 @@ impl cosmic::Application for App {
                             .class(skin::button(self.favorites, 8.0, false))
                             .on_press(Message::Favorites(true)),
                     );
-                for category in &self.collections {
-                    tabs = tabs.push(self.collection_button(category));
+                if !compact {
+                    for category in &self.collections {
+                        tabs = tabs.push(self.collection_button(category));
+                    }
                 }
                 tabs = tabs.push(
-                    widget::button::text(tr!("Gérer les collections", "Manage collections"))
-                        .on_press(Message::Collections(true)),
+                    widget::button::text(if compact {
+                        tr!("Collections", "Collections")
+                    } else {
+                        tr!("Gérer les collections", "Manage collections")
+                    })
+                    .on_press(Message::Collections(true)),
                 );
-                let tabs = widget::scrollable(tabs)
-                    .direction(iced::widget::scrollable::Direction::Horizontal(
-                        iced::widget::scrollable::Scrollbar::default(),
-                    ))
-                    .width(Length::Fill);
+                let tabs: Element<'_, Message> = if compact {
+                    tabs.into()
+                } else {
+                    widget::scrollable(tabs)
+                        .direction(iced::widget::scrollable::Direction::Horizontal(
+                            iced::widget::scrollable::Scrollbar::default(),
+                        ))
+                        .width(Length::Fill)
+                        .into()
+                };
                 layout = layout.push(
                     widget::row([])
                         .push(
@@ -1442,27 +1453,23 @@ impl cosmic::Application for App {
                 if self.sidebar_width() == 0.0 {
                     layout = layout.push(tabs);
                 }
-                let mut filters = widget::row([]).spacing(4);
-                for kind in std::iter::once(None).chain(Kind::ALL.into_iter().map(Some)) {
-                    filters = filters.push(
-                        widget::button::text(kind.map_or(tr!("Tout", "All"), Kind::label))
-                            .class(skin::button(self.kind == kind, 7.0, false))
-                            .on_press(Message::Filter(kind)),
-                    );
-                }
                 let filtered = self.filtered();
-                filters = filters.push(widget::Space::new().width(Length::Fill)).push(
-                    widget::text(tr_format!("{} copies", "{} clips", filtered.len()))
-                        .size(12)
-                        .class(skin::MUTED),
-                );
-                layout = layout.push(
-                    widget::scrollable(filters.align_y(iced::Alignment::Center)).direction(
-                        iced::widget::scrollable::Direction::Horizontal(
-                            iced::widget::scrollable::Scrollbar::default(),
-                        ),
-                    ),
-                );
+                let options: Vec<_> = std::iter::once(None)
+                    .chain(Kind::ALL.into_iter().map(Some))
+                    .collect();
+                let mut filter_rows = widget::column([]).spacing(4);
+                for chunk in options.chunks(if compact { 4 } else { 7 }) {
+                    let mut filters = widget::row([]).spacing(4);
+                    for &kind in chunk {
+                        filters = filters.push(
+                            widget::button::text(kind.map_or(tr!("Tout", "All"), Kind::label))
+                                .class(skin::button(self.kind == kind, 7.0, false))
+                                .on_press(Message::Filter(kind)),
+                        );
+                    }
+                    filter_rows = filter_rows.push(filters);
+                }
+                layout = layout.push(filter_rows);
                 let page_size = self.page_size();
                 let columns = self.columns();
                 let page: Vec<_> = filtered
@@ -1701,7 +1708,10 @@ impl cosmic::Application for App {
         } else {
             self.core
                 .applet
-                .popup_container(widget::scrollable(content).height(Length::Shrink))
+                .popup_container(
+                    widget::container(widget::scrollable(content).height(Length::Shrink))
+                        .class(skin::popup_surface()),
+                )
                 .limits(
                     Limits::NONE
                         .min_width(WIDTH_POPUP)

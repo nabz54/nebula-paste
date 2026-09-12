@@ -41,7 +41,7 @@ Crée une collection avec **Gérer les collections**, puis glisse une copie par 
 
 SQLite stocke l’historique et l’index OCR dans le dossier de données local de Nebula Paste, avec des permissions privées. Les données ne sont pas chiffrées et ne sont jamais envoyées à un service OCR. L’index est limité à 16 384 caractères par image et disparaît avec la copie source. Les favoris sont protégés de la rétention et du vidage de l’historique. Limites : 500 copies, 128 Mio de contenu, 16 Mio par copie, 128 nouvelles collections maximum (les catégories héritées restent conservées).
 
-La recherche est insensible à la casse et combine les mots avec les filtres de type, favoris et collection ; ce n’est pas une recherche approximative. Une reconnaissance peut être inexacte. Les fichiers restent des références à leur emplacement d’origine.
+La recherche ignore la casse et les accents latins (par exemple « ete » retrouve « été ») et combine les mots avec les filtres de type, favoris et collection ; ce n’est pas une recherche approximative. Une reconnaissance peut être inexacte. Les fichiers restent des références à leur emplacement d’origine.
 
 ## Développer et tester
 

@@ -149,16 +149,26 @@ impl Clip {
         category: &str,
         ocr: &str,
     ) -> bool {
-        (!favorites || self.pinned)
-            && kind.is_none_or(|k| k == self.kind)
-            && (category.is_empty() || self.category == category)
-            && query.split_whitespace().all(|word| {
-                let word = word.to_lowercase();
-                self.text.to_lowercase().contains(&word)
-                    || self.title.to_lowercase().contains(&word)
-                    || self.category.to_lowercase().contains(&word)
-                    || ocr.to_lowercase().contains(&word)
-            })
+        if (favorites && !self.pinned)
+            || kind.is_some_and(|k| k != self.kind)
+            || (!category.is_empty() && self.category != category)
+        {
+            return false;
+        }
+        let query = search_fold(query);
+        if query.trim().is_empty() {
+            return true;
+        }
+        let fields = [
+            self.text.as_str(),
+            self.title.as_str(),
+            self.category.as_str(),
+            ocr,
+        ]
+        .map(search_fold);
+        query
+            .split_whitespace()
+            .all(|word| fields.iter().any(|field| field.contains(word)))
     }
 }
 
@@ -269,4 +279,26 @@ pub fn age(timestamp: i64) -> String {
         3600..86400 => tr_format!("Il y a {} h", "{} h ago", seconds / 3600),
         _ => tr_format!("Il y a {} j", "{} days ago", seconds / 86400),
     }
+}
+
+/// Fold Latin accents for search only; clipboard bytes and collection identities stay intact.
+pub fn search_fold(value: &str) -> String {
+    let mut result = String::with_capacity(value.len());
+    for c in value.chars().flat_map(char::to_lowercase) {
+        match c {
+            'à' | 'á' | 'â' | 'ã' | 'ä' | 'å' => result.push('a'),
+            'ç' => result.push('c'),
+            'è' | 'é' | 'ê' | 'ë' => result.push('e'),
+            'ì' | 'í' | 'î' | 'ï' => result.push('i'),
+            'ñ' => result.push('n'),
+            'ò' | 'ó' | 'ô' | 'õ' | 'ö' | 'ø' => result.push('o'),
+            'ù' | 'ú' | 'û' | 'ü' => result.push('u'),
+            'ý' | 'ÿ' => result.push('y'),
+            'œ' => result.push_str("oe"),
+            'æ' => result.push_str("ae"),
+            '\u{0300}'..='\u{036f}' => {}
+            _ => result.push(c),
+        }
+    }
+    result
 }

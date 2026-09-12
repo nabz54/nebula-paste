@@ -41,7 +41,7 @@ Create a collection through **Manage collections**, then drag a clip by its hand
 
 History and OCR index are stored in the local Nebula Paste SQLite database with private permissions. Data is not encrypted and is never sent to an OCR service. Index text is limited to 16,384 characters per image and is removed with the source clip. Favorites survive retention and history clearing. Limits: 500 clips, 128 MiB content, 16 MiB per clip, at most 128 newly managed collections (legacy categories are preserved).
 
-Search is case insensitive and combines words with type, favorite and collection filters; it is not fuzzy search. OCR may be inaccurate. File clips remain references to their original paths.
+Search ignores case and Latin accents (for example, “ete” finds “été”) and combines words with type, favorite and collection filters; it is not fuzzy search. OCR may be inaccurate. File clips remain references to their original paths.
 
 ## Development
 

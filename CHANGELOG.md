@@ -4,6 +4,8 @@
 
 ## 0.7.0-beta.1 — Search and collections
 
+- Shorter popup: five 72-unit rows, smaller previews and side actions; opaque surface and filters without horizontal scrolling.
+- Search folds Latin accents, French ligatures and decomposed accents, including OCR text, while preserving original content.
 - Opt-in local image-text search with a persistent index capped at 16,384 characters per image and no extra text clips.
 - Sequential background OCR, language selection, progress, recognized text in details and manual reindexing.
 - Index erasure on disable and source deletion; stale results rejected after deletion or settings changes.

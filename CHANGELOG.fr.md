@@ -4,6 +4,8 @@
 
 ## 0.7.0-beta.1 — Recherche et collections
 
+- Popup raccourci : cinq lignes de 72 unités, miniatures réduites et actions latérales ; fond opaque et filtres sans défilement horizontal.
+- Recherche tolérante aux accents latins, aux ligatures françaises et aux accents décomposés, également dans le texte OCR ; contenu original préservé.
 - Recherche OCR locale dans les images, désactivée par défaut ; index persistant limité à 16 384 caractères par image, sans copies supplémentaires.
 - Traitement séquentiel en arrière-plan, sélection de langue, progression, texte reconnu dans l’aperçu et réindexation manuelle.
 - Effacement de l’index à la désactivation et avec les copies supprimées ; rejet des résultats périmés après suppression ou changement de réglage.

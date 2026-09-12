@@ -28,6 +28,8 @@ use std::{
 const WIDTH_WIDE: f32 = 940.0;
 const WIDTH_COMPACT: f32 = 470.0;
 const WIDTH_POPUP: f32 = 360.0;
+const POPUP_CARD_HEIGHT: f32 = 72.0;
+const POPUP_CARD_GAP: f32 = 6.0;
 const WIDTH_MIN: f32 = 360.0;
 /// Largeur minimale d’une carte de la grille et espacement entre les cartes.
 const CARD_WIDTH: f32 = 205.0;
@@ -849,12 +851,79 @@ impl App {
     }
     fn card<'a>(&self, clip: &'a Clip, index: usize) -> Element<'a, Message> {
         if self.is_popup() {
-            return self.card_list(clip, index);
+            return self.card_popup(clip, index);
         }
         match self.settings.density {
             Density::Compact => self.card_list(clip, index),
             Density::Comfortable => self.card_grid(clip, index),
         }
+    }
+    /// A fixed-height popup row keeps all five page entries within the list viewport.
+    fn card_popup<'a>(&self, clip: &'a Clip, index: usize) -> Element<'a, Message> {
+        let title = clip.title.split_whitespace().collect::<Vec<_>>().join(" ");
+        let summary = widget::column([])
+            .push(
+                widget::container(widget::text(title).size(13))
+                    .height(20)
+                    .width(Length::Fill)
+                    .clip(true),
+            )
+            .push(
+                widget::container(
+                    widget::text(format!("{} · ⌃{}", model::age(clip.timestamp), index + 1))
+                        .size(11),
+                )
+                .height(16)
+                .clip(true),
+            )
+            .spacing(4)
+            .width(Length::Fill);
+        let copy = widget::button::custom(
+            widget::row([])
+                .push(
+                    widget::container(self.preview(clip, 40.0))
+                        .width(44)
+                        .height(40)
+                        .clip(true),
+                )
+                .push(summary)
+                .spacing(8)
+                .align_y(iced::Alignment::Center),
+        )
+        .on_press(Message::Copy(clip.id.clone()))
+        .padding(8)
+        .width(Length::Fill)
+        .height(POPUP_CARD_HEIGHT)
+        .class(skin::button(self.selected == index, 8.0, true));
+        let actions = widget::column([])
+            .push(skin::hint(
+                widget::button::custom(widget::text(if clip.pinned { "★" } else { "☆" }).size(14))
+                    .padding(2)
+                    .class(skin::button(clip.pinned, 6.0, false))
+                    .on_press(Message::Pin(clip.id.clone())),
+                tr!("Favori", "Favorite"),
+            ))
+            .push(skin::hint(
+                widget::button::custom(skin::icon("view-reveal-symbolic").icon().size(16))
+                    .padding(2)
+                    .on_press(Message::Detail(Some(clip.id.clone()))),
+                tr!("Aperçu de la copie", "Preview clip"),
+            ))
+            .push(skin::hint(
+                widget::button::custom(skin::icon("edit-delete-symbolic").icon().size(16))
+                    .padding(2)
+                    .on_press(Message::Delete(clip.id.clone())),
+                tr!("Supprimer cette copie", "Delete this clip"),
+            ))
+            .spacing(2);
+        widget::row([])
+            .push(self.drag_source(clip))
+            .push(copy)
+            .push(actions)
+            .spacing(4)
+            .align_y(iced::Alignment::Center)
+            .height(POPUP_CARD_HEIGHT)
+            .into()
     }
     /// Ligne compacte : une colonne, aperçu réduit, actions à droite.
     fn card_list<'a>(&self, clip: &'a Clip, index: usize) -> Element<'a, Message> {
@@ -1182,7 +1251,9 @@ impl cosmic::Application for App {
             ))
             .spacing(if compact { 4 } else { 10 })
             .align_y(iced::Alignment::Center);
-        let mut layout = widget::column([]).push(title).spacing(14);
+        let mut layout = widget::column([])
+            .push(title)
+            .spacing(if self.is_popup() { 8 } else { 14 });
         if self.is_popup() {
             layout = layout.push(
                 widget::button::text(tr!("Ouvrir l’historique complet", "Open full history"))
@@ -1477,7 +1548,13 @@ impl cosmic::Application for App {
                     .skip(self.page * page_size)
                     .take(page_size)
                     .collect();
-                let mut grid = widget::column([]).spacing(if compact { 8 } else { 14 });
+                let mut grid = widget::column([]).spacing(if self.is_popup() {
+                    POPUP_CARD_GAP
+                } else if compact {
+                    8.0
+                } else {
+                    14.0
+                });
                 if page.is_empty() {
                     grid=grid.push(widget::container(widget::column([])
                 .push(widget::text(if self.query.is_empty() {tr!("Tout commence par une copie.", "It starts with a copy.")} else {tr!("Aucun résultat.", "No results.")}).size(22).class(skin::TEXT))
@@ -1493,7 +1570,14 @@ impl cosmic::Application for App {
                     }
                     grid = grid.push(row);
                 }
-                let height = if compact {
+                let height = if self.is_popup() {
+                    if page.is_empty() {
+                        200.0
+                    } else {
+                        page.len() as f32 * POPUP_CARD_HEIGHT
+                            + page.len().saturating_sub(1) as f32 * POPUP_CARD_GAP
+                    }
+                } else if compact {
                     420.0
                 } else if page.len() > columns {
                     480.0

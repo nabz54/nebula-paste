@@ -1,1 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><title>Nebula Paste</title><g fill="none" stroke="#2e3436" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7H4v14h11v-2M9 3h10v10M9 3v14h4"/><path d="m18 13 1.5 3.5L23 18l-3.5 1.5L18 23l-1.5-3.5L13 18l3.5-1.5z" fill="#2e3436" stroke="none"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+<title>Nebula Paste</title>
+<desc>Capture corners around a nebula with a stellar opening. Concept 2A.</desc>
+<g fill="#2e3436">
+<path d="M3 2H8V4H4V8H2V3Q2 2 3 2ZM20 16H22V21Q22 22 21 22H16V20H20Z"/>
+<path fill-rule="evenodd" d="M9 6C11 3 16 4 16 7C16 8.5 18 7 19.5 9C22 12 19 15 17 15C17.5 18 15.5 20 13 19C11 22 7 20 7 18C3 17 3 13 6 11C7 10 7 8 9 6ZM12 9L13.25 11.75L16 13L13.25 14.25L12 17L10.75 14.25L8 13L10.75 11.75Z"/>
+</g>
+</svg>

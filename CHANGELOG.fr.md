@@ -2,6 +2,25 @@
 
 [English](CHANGELOG.md)
 
+## Non publié — préparation 0.8
+
+- Identité 2A : nébuleuse et angles de capture, SVG couleur pour le lanceur/en-tête et symbolique pour le panneau.
+- Aperçu des SVG à 16, 24 et 32 px sur fonds clair et sombre ; thème de l’interface conservé.
+- Roadmap 0.8–1.0 et règles de design FR/EN. Modèles réutilisables non encore implémentés ; aucune migration ni augmentation de version du binaire dans ce changement.
+
+## 0.7.0-beta.1 — Recherche et collections
+
+- Popup raccourci : cinq lignes de 72 unités, miniatures réduites et actions latérales ; fond opaque et filtres sans défilement horizontal.
+- Recherche tolérante aux accents latins, aux ligatures françaises et aux accents décomposés, également dans le texte OCR ; contenu original préservé.
+- Recherche OCR locale dans les images, désactivée par défaut ; index persistant limité à 16 384 caractères par image, sans copies supplémentaires.
+- Traitement séquentiel en arrière-plan, sélection de langue, progression, texte reconnu dans l’aperçu et réindexation manuelle.
+- Effacement de l’index à la désactivation et avec les copies supprimées ; rejet des résultats périmés après suppression ou changement de réglage.
+- Collections persistantes, y compris vides : création, renommage atomique, suppression avec confirmation conservant les copies et favoris.
+- Migration automatique des catégories 0.6, barre latérale adaptative et classement par glisser-déposer interne.
+- Paquet RPM amont Fedora, dépendances Rust vendues, licences incluses et workflow de construction.
+- Documentation et guide de test français/anglais ; tests de migration, recherche, conservation des données et cycle OCR.
+- Bêta : validation interactive Fedora COSMIC encore nécessaire. Les extraits réutilisables sont reportés à une version ultérieure.
+
 ## 0.6.0-beta.1 — Intégration COSMIC
 
 - Surfaces, contrôles, textes et icônes symboliques suivent le thème système.

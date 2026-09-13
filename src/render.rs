@@ -34,6 +34,9 @@ pub fn preview(path: &str) -> Result<(), Box<dyn std::error::Error>> {
         app.expand_demo();
         let _ = app.update(crate::app::Message::Viewport(360.0));
     }
+    if std::env::args().nth(3).as_deref() == Some("collections") {
+        let _ = app.update(crate::app::Message::Collections(true));
+    }
     let popup = std::env::args().nth(3).as_deref() == Some("popup");
     if popup {
         app.render_popup();

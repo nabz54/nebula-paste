@@ -58,6 +58,8 @@ pub struct Settings {
     /// 0 : copie seule, 1 : Ctrl+V, 2 : Ctrl+Maj+V.
     pub paste_mode: u8,
     pub keep_open: bool,
+    pub ocr_indexing: bool,
+    pub popup_expanded: bool,
     pub ui_language: &'static str,
 }
 
@@ -69,6 +71,8 @@ impl Default for Settings {
             retention_days: 0,
             paste_mode: 0,
             keep_open: false,
+            ocr_indexing: false,
+            popup_expanded: false,
             ui_language: "auto",
         }
     }
@@ -122,6 +126,8 @@ impl Settings {
                         _ => "auto",
                     }
                 }
+                "ocr-indexing" => settings.ocr_indexing = value == "true",
+                "popup-expanded" => settings.popup_expanded = value == "true",
                 "keep-open" => settings.keep_open = value == "true",
                 "paste-mode" => {
                     if let Ok(mode) = value.parse::<u8>()
@@ -143,13 +149,17 @@ impl Settings {
              retention-days = {}\n\
              paste-mode = {}\n\
              keep-open = {}\n\
-             ui-language = {}\n",
+             ui-language = {}\n\
+             ocr-indexing = {}\n\
+             popup-expanded = {}\n",
             self.density.key(),
             self.ocr_language,
             self.retention_days,
             self.paste_mode,
             self.keep_open,
-            self.ui_language
+            self.ui_language,
+            self.ocr_indexing,
+            self.popup_expanded
         )
     }
     /// Écrit dans un fichier temporaire puis renomme : une interruption ne laisse
@@ -227,6 +237,7 @@ mod tests {
         let mut settings = Settings::default();
         settings.density = Density::Compact;
         settings.paste_mode = 2;
+        settings.popup_expanded = true;
         settings.cycle_retention();
         settings.cycle_ocr_language();
         settings.save(&path).unwrap();

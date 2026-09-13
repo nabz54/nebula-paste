@@ -17,7 +17,7 @@ use nebula_paste::{
 };
 use nebula_paste::{tr, tr_format};
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     path::PathBuf,
     sync::atomic::Ordering,
     time::{Duration, Instant},
@@ -28,6 +28,8 @@ use std::{
 const WIDTH_WIDE: f32 = 940.0;
 const WIDTH_COMPACT: f32 = 470.0;
 const WIDTH_POPUP: f32 = 360.0;
+const POPUP_CARD_HEIGHT: f32 = 72.0;
+const POPUP_CARD_GAP: f32 = 6.0;
 const WIDTH_MIN: f32 = 360.0;
 /// Largeur minimale d’une carte de la grille et espacement entre les cartes.
 const CARD_WIDTH: f32 = 205.0;
@@ -47,6 +49,7 @@ pub enum Mode {
 }
 pub struct App {
     core: cosmic::Core,
+    application_theme: cosmic::Theme,
     popup: Option<Id>,
     history: Option<Id>,
     instance: Option<Instance>,
@@ -54,6 +57,16 @@ pub struct App {
     monitor: Monitor,
     store: Option<Store>,
     clips: Vec<Clip>,
+    collections: Vec<String>,
+    collections_open: bool,
+    collection_target: Option<String>,
+    collection_name: String,
+    collection_delete: Option<String>,
+    image_index: HashMap<String, String>,
+    index_attempted: HashSet<String>,
+    index_busy: Option<(u64, String)>,
+    index_generation: u64,
+    index_error: Option<String>,
     thumbnails: HashMap<String, iced::widget::image::Handle>,
     payloads: HashMap<String, crate::transfer::Payload>,
     query: String,
@@ -95,6 +108,18 @@ struct Undo {
 #[derive(Debug, Clone)]
 pub enum Message {
     Toggle,
+    ReloadAppearance,
+    TogglePopupSize,
+    Collections(bool),
+    EditCollection(Option<String>),
+    CollectionName(String),
+    SaveCollection,
+    AskDeleteCollection(Option<String>),
+    DeleteCollection,
+    FileClip(String, String),
+    Indexing,
+    Reindex,
+    IndexDone(u64, String, Result<String, String>),
     OpenHistory,
     HistoryOpened(Id),
     CloseView,
@@ -183,10 +208,169 @@ impl App {
         }
         self.refresh();
     }
+    fn sidebar_width(&self) -> f32 {
+        if !self.is_popup() && self.width() >= 720.0 {
+            192.0
+        } else {
+            0.0
+        }
+    }
+    /// Invalidate callbacks without starting another OCR worker before the old one exits.
+    fn invalidate_index(&mut self) {
+        self.index_generation = self.index_generation.wrapping_add(1);
+        self.index_attempted.clear();
+        self.index_error = None;
+    }
+    fn index_next(&mut self) -> Task<cosmic::Action<Message>> {
+        if !self.settings.ocr_indexing
+            || self.ocr_busy
+            || self.index_busy.is_some()
+            || (self.monitor.paused() && !self.demo)
+            || self.dragging
+        {
+            return Task::none();
+        }
+        let next = self
+            .clips
+            .iter()
+            .find(|c| {
+                c.kind == Kind::Image
+                    && !self.image_index.contains_key(&c.id)
+                    && !self.index_attempted.contains(&c.id)
+            })
+            .cloned();
+        let Some(clip) = next else {
+            return Task::none();
+        };
+        let id = clip.id.clone();
+        let generation = self.index_generation;
+        self.index_attempted.insert(id.clone());
+        self.index_busy = Some((generation, id.clone()));
+        let language = self.settings.ocr_language;
+        Task::perform(
+            async move {
+                let result =
+                    tokio::task::spawn_blocking(move || crate::actions::ocr(clip, language))
+                        .await
+                        .map_err(|e| e.to_string())
+                        .and_then(|r| r);
+                (generation, id, result)
+            },
+            |(generation, id, result)| {
+                cosmic::Action::App(Message::IndexDone(generation, id, result))
+            },
+        )
+    }
+    fn collection_button<'a>(&self, name: &'a str) -> Element<'a, Message> {
+        let target = name.to_owned();
+        let button = widget::button::text(name)
+            .class(skin::button(self.category == name, 8.0, false))
+            .on_press(Message::Category(name.into()));
+        widget::DndDestination::new(button, vec![crate::transfer::CLIP_ID_MIME.into()])
+            .action(iced::clipboard::dnd::DndAction::Copy)
+            .preferred_action(iced::clipboard::dnd::DndAction::Copy)
+            .on_finish(move |mime, bytes, _, _, _| {
+                let id = if mime == crate::transfer::CLIP_ID_MIME && bytes.len() == 64 {
+                    String::from_utf8(bytes).unwrap_or_default()
+                } else {
+                    String::new()
+                };
+                Message::FileClip(id, target.clone())
+            })
+            .into()
+    }
+    fn view_collections(&self) -> Element<'_, Message> {
+        let mut panel = widget::column([])
+            .spacing(12)
+            .push(widget::text(tr!("Collections", "Collections")).size(20))
+            .push(
+                widget::text(tr!(
+                    "Glisse une copie sur une collection pour la classer.",
+                    "Drag a clip onto a collection to file it."
+                ))
+                .size(12),
+            );
+        for name in &self.collections {
+            let count = self.clips.iter().filter(|c| &c.category == name).count();
+            panel = panel.push(
+                widget::row([])
+                    .push(self.collection_button(name))
+                    .push(widget::text(format!("({count})")).size(12))
+                    .push(widget::Space::new().width(Length::Fill))
+                    .push(
+                        widget::button::text(tr!("Modifier", "Edit"))
+                            .on_press(Message::EditCollection(Some(name.clone()))),
+                    )
+                    .spacing(8),
+            );
+        }
+        panel = panel
+            .push(
+                widget::text_input(
+                    tr!("Nom de la collection", "Collection name"),
+                    &self.collection_name,
+                )
+                .on_input(Message::CollectionName)
+                .on_submit(|_| Message::SaveCollection),
+            )
+            .push(
+                widget::button::suggested(if self.collection_target.is_some() {
+                    tr!("Renommer", "Rename")
+                } else {
+                    tr!("Créer", "Create")
+                })
+                .on_press(Message::SaveCollection),
+            )
+            .push(
+                widget::button::text(tr!("Nouvelle collection", "New collection"))
+                    .on_press(Message::EditCollection(None)),
+            );
+        if let Some(name) = &self.collection_target {
+            panel = panel.push(
+                widget::button::text(tr!(
+                    "Supprimer cette collection…",
+                    "Delete this collection…"
+                ))
+                .on_press(Message::AskDeleteCollection(Some(name.clone()))),
+            );
+        }
+        if let Some(name) = &self.collection_delete {
+            panel = panel
+                .push(widget::text(tr_format!(
+                    "Supprimer « {name} » ? Les copies seront conservées.",
+                    "Delete “{name}”? Clips will be kept."
+                )))
+                .push(
+                    widget::button::text(tr!("Confirmer la suppression", "Confirm deletion"))
+                        .on_press(Message::DeleteCollection),
+                )
+                .push(
+                    widget::button::text(tr!("Annuler", "Cancel"))
+                        .on_press(Message::AskDeleteCollection(None)),
+                );
+        }
+        panel
+            .push(
+                widget::button::text(tr!("Retour à l’historique", "Back to history"))
+                    .on_press(Message::Collections(false)),
+            )
+            .into()
+    }
     fn filtered(&self) -> Vec<&Clip> {
         self.clips
             .iter()
-            .filter(|clip| clip.matches(&self.query, self.kind, self.favorites, &self.category))
+            .filter(|clip| {
+                clip.matches_with_ocr(
+                    &self.query,
+                    self.kind,
+                    self.favorites,
+                    &self.category,
+                    self.image_index
+                        .get(&clip.id)
+                        .map(String::as_str)
+                        .unwrap_or(""),
+                )
+            })
             .collect()
     }
     /// Largeur idéale du volet pour la densité courante ; le compositeur peut
@@ -194,9 +378,16 @@ impl App {
     fn is_popup(&self) -> bool {
         !self.demo && self.history.is_none()
     }
+    fn compact_popup(&self) -> bool {
+        self.is_popup() && (!self.settings.popup_expanded || self.width() < 600.0)
+    }
     fn ideal_width(&self) -> f32 {
         if self.is_popup() {
-            return WIDTH_POPUP;
+            return if self.settings.popup_expanded {
+                WIDTH_WIDE
+            } else {
+                WIDTH_POPUP
+            };
         }
         match self.settings.density {
             Density::Compact => WIDTH_COMPACT,
@@ -208,19 +399,23 @@ impl App {
     }
     fn columns(&self) -> usize {
         if self.is_popup() {
-            return 1;
+            if self.compact_popup() {
+                return 1;
+            }
+            let usable = self.width() - PADDING + CARD_SPACING;
+            return ((usable / (CARD_WIDTH + CARD_SPACING)) as usize).clamp(1, MAX_COLUMNS);
         }
         match self.settings.density {
             Density::Compact => 1,
             Density::Comfortable => {
-                let usable = self.width() - PADDING + CARD_SPACING;
+                let usable = self.width() - self.sidebar_width() - PADDING + CARD_SPACING;
                 ((usable / (CARD_WIDTH + CARD_SPACING)) as usize).clamp(1, MAX_COLUMNS)
             }
         }
     }
     fn rows(&self) -> usize {
         if self.is_popup() {
-            return 5;
+            return if self.compact_popup() { 5 } else { 2 };
         }
         match self.settings.density {
             Density::Compact => 6,
@@ -291,6 +486,22 @@ impl App {
                 }
             }
         }
+        if let Some(store) = &self.store {
+            match store.collections() {
+                Ok(names) => self.collections = names,
+                Err(e) => self.status = e,
+            }
+            if self.settings.ocr_indexing {
+                match store.image_index(self.settings.ocr_language) {
+                    Ok(index) => self.image_index = index,
+                    Err(e) => self.status = e,
+                }
+            } else {
+                self.image_index.clear();
+            }
+        }
+        self.index_attempted
+            .retain(|id| self.clips.iter().any(|c| &c.id == id));
         self.thumbnails
             .retain(|id, _| self.clips.iter().any(|c| &c.id == id));
         self.payloads
@@ -405,6 +616,11 @@ impl App {
                     self.settings.ocr_label().into(),
                     Message::OcrLanguage,
                 ))
+                .push(row(tr!("Recherche dans les images", "Search image text"),
+                    if self.settings.ocr_indexing { tr!("Activée", "Enabled") } else { tr!("Désactivée", "Disabled") }.into(), Message::Indexing))
+                .push(widget::text(tr!("OCR local, image par image. Désactiver efface l’index ; les images restent intactes.", "Local OCR, one image at a time. Disabling clears the index; images stay unchanged.")).size(11))
+                .push(widget::button::text(tr!("Réindexer les images", "Reindex images"))
+                    .on_press_maybe(self.settings.ocr_indexing.then_some(Message::Reindex)))
                 .push(row(
                     tr!("Durée de rétention", "Retention"),
                     if self.retention_draft == 0 { tr!("Sans limite d’âge", "No age limit").into() } else { tr_format!("{} jours", "{} days", self.retention_draft) },
@@ -598,6 +814,7 @@ impl App {
             widget::container(widget::text("⠿").size(20).class(skin::MUTED)).padding([3, 9]),
             iced::widget::Id::new(format!("drag-{}", clip.id)),
         )
+        .window(self.history.or(self.popup).unwrap_or(Id::RESERVED))
         .action(iced::clipboard::dnd::DndAction::Copy)
         .on_start(Some(Message::Drag(true)))
         .on_finish(Some(Message::Drag(false)))
@@ -648,12 +865,83 @@ impl App {
     }
     fn card<'a>(&self, clip: &'a Clip, index: usize) -> Element<'a, Message> {
         if self.is_popup() {
-            return self.card_list(clip, index);
+            return if self.compact_popup() {
+                self.card_popup(clip, index)
+            } else {
+                self.card_grid(clip, index)
+            };
         }
         match self.settings.density {
             Density::Compact => self.card_list(clip, index),
             Density::Comfortable => self.card_grid(clip, index),
         }
+    }
+    /// A fixed-height popup row keeps all five page entries within the list viewport.
+    fn card_popup<'a>(&self, clip: &'a Clip, index: usize) -> Element<'a, Message> {
+        let title = clip.title.split_whitespace().collect::<Vec<_>>().join(" ");
+        let summary = widget::column([])
+            .push(
+                widget::container(widget::text(title).size(13))
+                    .height(20)
+                    .width(Length::Fill)
+                    .clip(true),
+            )
+            .push(
+                widget::container(
+                    widget::text(format!("{} · ⌃{}", model::age(clip.timestamp), index + 1))
+                        .size(11),
+                )
+                .height(16)
+                .clip(true),
+            )
+            .spacing(4)
+            .width(Length::Fill);
+        let copy = widget::button::custom(
+            widget::row([])
+                .push(
+                    widget::container(self.preview(clip, 40.0))
+                        .width(44)
+                        .height(40)
+                        .clip(true),
+                )
+                .push(summary)
+                .spacing(8)
+                .align_y(iced::Alignment::Center),
+        )
+        .on_press(Message::Copy(clip.id.clone()))
+        .padding(8)
+        .width(Length::Fill)
+        .height(POPUP_CARD_HEIGHT)
+        .class(skin::button(self.selected == index, 8.0, true));
+        let actions = widget::column([])
+            .push(skin::hint(
+                widget::button::custom(widget::text(if clip.pinned { "★" } else { "☆" }).size(14))
+                    .padding(2)
+                    .class(skin::button(clip.pinned, 6.0, false))
+                    .on_press(Message::Pin(clip.id.clone())),
+                tr!("Favori", "Favorite"),
+            ))
+            .push(skin::hint(
+                widget::button::custom(skin::icon("view-reveal-symbolic").icon().size(16))
+                    .padding(2)
+                    .on_press(Message::Detail(Some(clip.id.clone()))),
+                tr!("Aperçu de la copie", "Preview clip"),
+            ))
+            .push(skin::hint(
+                widget::button::custom(skin::icon("edit-delete-symbolic").icon().size(16))
+                    .padding(2)
+                    .on_press(Message::Delete(clip.id.clone())),
+                tr!("Supprimer cette copie", "Delete this clip"),
+            ))
+            .spacing(2);
+        widget::row([])
+            .push(self.drag_source(clip))
+            .push(copy)
+            .push(actions)
+            .spacing(4)
+            .align_y(iced::Alignment::Center)
+            .height(POPUP_CARD_HEIGHT)
+            .into()
     }
     /// Ligne compacte : une colonne, aperçu réduit, actions à droite.
     fn card_list<'a>(&self, clip: &'a Clip, index: usize) -> Element<'a, Message> {
@@ -820,6 +1108,7 @@ impl cosmic::Application for App {
         }
         let mut app = Self {
             core,
+            application_theme: cosmic::theme::system_preference(),
             popup: None,
             history: None,
             instance,
@@ -831,6 +1120,16 @@ impl cosmic::Application for App {
             },
             store,
             clips: vec![],
+            collections: vec![],
+            collections_open: false,
+            collection_target: None,
+            collection_name: String::new(),
+            collection_delete: None,
+            image_index: HashMap::new(),
+            index_attempted: HashSet::new(),
+            index_busy: None,
+            index_generation: 0,
+            index_error: None,
             thumbnails: HashMap::new(),
             payloads: HashMap::new(),
             query: String::new(),
@@ -886,8 +1185,14 @@ impl cosmic::Application for App {
             .into()
     }
     fn view_window(&self, id: Id) -> Element<'_, Message> {
-        let compact =
-            self.is_popup() || self.settings.density == Density::Compact || self.width() < 600.0;
+        if !self.demo && self.core.main_window_id() == Some(id) {
+            return self.view();
+        }
+        let compact = if self.is_popup() {
+            self.compact_popup()
+        } else {
+            self.settings.density == Density::Compact || self.width() < 600.0
+        };
         let paused = self.monitor.paused() && !self.demo;
         let mut identity = widget::column([]).push(
             widget::text("Nebula Paste")
@@ -971,12 +1276,27 @@ impl cosmic::Application for App {
             ))
             .spacing(if compact { 4 } else { 10 })
             .align_y(iced::Alignment::Center);
-        let mut layout = widget::column([]).push(title).spacing(14);
+        let mut layout =
+            widget::column([])
+                .push(title)
+                .spacing(if self.is_popup() { 8 } else { 14 });
         if self.is_popup() {
             layout = layout.push(
-                widget::button::text(tr!("Ouvrir l’historique complet", "Open full history"))
-                    .on_press(Message::OpenHistory)
-                    .width(Length::Fill),
+                widget::row([])
+                    .push(
+                        widget::button::text(if self.settings.popup_expanded {
+                            tr!("Réduire", "Collapse")
+                        } else {
+                            tr!("Agrandir", "Expand")
+                        })
+                        .on_press(Message::TogglePopupSize)
+                        .width(Length::Fill),
+                    )
+                    .push(
+                        widget::button::text(tr!("Fenêtre séparée", "Separate window"))
+                            .on_press(Message::OpenHistory),
+                    )
+                    .spacing(8),
             );
         }
         if paused {
@@ -1050,7 +1370,10 @@ impl cosmic::Application for App {
         if self.settings_open {
             layout = layout.push(self.view_settings());
         }
-        if !self.settings_open {
+        if self.collections_open {
+            layout = layout.push(self.view_collections());
+        }
+        if !self.settings_open && !self.collections_open {
             if let Some(clip) = self
                 .detail
                 .as_ref()
@@ -1136,6 +1459,17 @@ impl cosmic::Application for App {
                             .align_x(iced::Alignment::Start),
                     );
                 if clip.kind == Kind::Image {
+                    if let Some(text) = self.image_index.get(&clip.id) {
+                        layout = layout
+                            .push(
+                                widget::text(tr!(
+                                    "Texte indexé · à vérifier",
+                                    "Indexed text · review for accuracy"
+                                ))
+                                .size(12),
+                            )
+                            .push(widget::scrollable(widget::text(text).size(13)).height(120));
+                    }
                     layout = layout.push(
                         widget::column([])
                             .push(
@@ -1146,7 +1480,8 @@ impl cosmic::Application for App {
                                 })
                                 .class(skin::button(true, 8.0, true))
                                 .on_press_maybe(
-                                    (!self.ocr_busy).then(|| Message::Ocr(clip.id.clone())),
+                                    (!self.ocr_busy && self.index_busy.is_none())
+                                        .then(|| Message::Ocr(clip.id.clone())),
                                 ),
                             )
                             .push(
@@ -1183,67 +1518,67 @@ impl cosmic::Application for App {
                             .class(skin::button(self.favorites, 8.0, false))
                             .on_press(Message::Favorites(true)),
                     );
-                let mut categories: Vec<_> = self
-                    .clips
-                    .iter()
-                    .map(|c| c.category.as_str())
-                    .filter(|c| !c.is_empty())
-                    .collect();
-                categories.sort();
-                categories.dedup();
-                for category in categories {
-                    tabs = tabs.push(
-                        widget::button::text(category)
-                            .class(skin::button(self.category == category, 8.0, false))
-                            .on_press(Message::Category(category.into())),
-                    );
+                if !compact {
+                    for category in &self.collections {
+                        tabs = tabs.push(self.collection_button(category));
+                    }
                 }
-                let tabs = widget::scrollable(tabs)
-                    .direction(iced::widget::scrollable::Direction::Horizontal(
-                        iced::widget::scrollable::Scrollbar::default(),
-                    ))
-                    .width(Length::Fill);
-                layout = layout
-                    .push(
-                        widget::row([])
-                            .push(
-                                widget::search_input(
-                                    tr!("Rechercher une copie…", "Search clipboard history…"),
-                                    &self.query,
-                                )
-                                .leading_icon(skin::icon("search").icon().size(16).into())
-                                .style(skin::input())
-                                .padding(10)
-                                .width(Length::Fill)
-                                .id(self.search_id.clone())
-                                .on_input(Message::Search)
-                                .on_submit(|_| Message::Enter),
+                tabs = tabs.push(
+                    widget::button::text(if compact {
+                        tr!("Collections", "Collections")
+                    } else {
+                        tr!("Gérer les collections", "Manage collections")
+                    })
+                    .on_press(Message::Collections(true)),
+                );
+                let tabs: Element<'_, Message> = if compact {
+                    tabs.into()
+                } else {
+                    widget::scrollable(tabs)
+                        .direction(iced::widget::scrollable::Direction::Horizontal(
+                            iced::widget::scrollable::Scrollbar::default(),
+                        ))
+                        .width(Length::Fill)
+                        .into()
+                };
+                layout = layout.push(
+                    widget::row([])
+                        .push(
+                            widget::search_input(
+                                tr!("Rechercher une copie…", "Search clipboard history…"),
+                                &self.query,
                             )
-                            .spacing(18)
-                            .align_y(iced::Alignment::Center),
-                    )
-                    .push(tabs);
-                let mut filters = widget::row([]).spacing(4);
-                for kind in std::iter::once(None).chain(Kind::ALL.into_iter().map(Some)) {
-                    filters = filters.push(
-                        widget::button::text(kind.map_or(tr!("Tout", "All"), Kind::label))
-                            .class(skin::button(self.kind == kind, 7.0, false))
-                            .on_press(Message::Filter(kind)),
-                    );
+                            .leading_icon(skin::icon("search").icon().size(16).into())
+                            .style(skin::input())
+                            .padding(10)
+                            .width(Length::Fill)
+                            .id(self.search_id.clone())
+                            .on_input(Message::Search)
+                            .on_submit(|_| Message::Enter),
+                        )
+                        .spacing(18)
+                        .align_y(iced::Alignment::Center),
+                );
+                if self.sidebar_width() == 0.0 {
+                    layout = layout.push(tabs);
                 }
                 let filtered = self.filtered();
-                filters = filters.push(widget::Space::new().width(Length::Fill)).push(
-                    widget::text(tr_format!("{} copies", "{} clips", filtered.len()))
-                        .size(12)
-                        .class(skin::MUTED),
-                );
-                layout = layout.push(
-                    widget::scrollable(filters.align_y(iced::Alignment::Center)).direction(
-                        iced::widget::scrollable::Direction::Horizontal(
-                            iced::widget::scrollable::Scrollbar::default(),
-                        ),
-                    ),
-                );
+                let options: Vec<_> = std::iter::once(None)
+                    .chain(Kind::ALL.into_iter().map(Some))
+                    .collect();
+                let mut filter_rows = widget::column([]).spacing(4);
+                for chunk in options.chunks(if compact { 4 } else { 7 }) {
+                    let mut filters = widget::row([]).spacing(4);
+                    for &kind in chunk {
+                        filters = filters.push(
+                            widget::button::text(kind.map_or(tr!("Tout", "All"), Kind::label))
+                                .class(skin::button(self.kind == kind, 7.0, false))
+                                .on_press(Message::Filter(kind)),
+                        );
+                    }
+                    filter_rows = filter_rows.push(filters);
+                }
+                layout = layout.push(filter_rows);
                 let page_size = self.page_size();
                 let columns = self.columns();
                 let page: Vec<_> = filtered
@@ -1251,7 +1586,13 @@ impl cosmic::Application for App {
                     .skip(self.page * page_size)
                     .take(page_size)
                     .collect();
-                let mut grid = widget::column([]).spacing(if compact { 8 } else { 14 });
+                let mut grid = widget::column([]).spacing(if self.is_popup() {
+                    POPUP_CARD_GAP
+                } else if compact {
+                    8.0
+                } else {
+                    14.0
+                });
                 if page.is_empty() {
                     grid=grid.push(widget::container(widget::column([])
                 .push(widget::text(if self.query.is_empty() {tr!("Tout commence par une copie.", "It starts with a copy.")} else {tr!("Aucun résultat.", "No results.")}).size(22).class(skin::TEXT))
@@ -1267,7 +1608,14 @@ impl cosmic::Application for App {
                     }
                     grid = grid.push(row);
                 }
-                let height = if compact {
+                let height = if self.compact_popup() {
+                    if page.is_empty() {
+                        200.0
+                    } else {
+                        page.len() as f32 * POPUP_CARD_HEIGHT
+                            + page.len().saturating_sub(1) as f32 * POPUP_CARD_GAP
+                    }
+                } else if compact {
                     420.0
                 } else if page.len() > columns {
                     480.0
@@ -1403,12 +1751,67 @@ impl cosmic::Application for App {
                     .spacing(8),
             );
         }
+        if self.settings.ocr_indexing {
+            let total = self.clips.iter().filter(|c| c.kind == Kind::Image).count();
+            layout = layout.push(
+                widget::text(tr_format!(
+                    "Images indexées : {} / {total}",
+                    "Images indexed: {} / {total}",
+                    self.image_index.len()
+                ))
+                .size(11),
+            );
+            if self.index_busy.is_some() {
+                layout = layout.push(
+                    widget::text(tr!(
+                        "Indexation locale en cours…",
+                        "Local indexing in progress…"
+                    ))
+                    .size(11),
+                );
+            }
+            if let Some(error) = &self.index_error {
+                layout = layout.push(widget::text(error).size(11));
+            }
+        }
         let content = widget::container(layout)
-            .width(self.width())
+            .width(self.width() - self.sidebar_width())
             .padding(if compact { 12 } else { 18 })
             .class(cosmic::theme::Container::Transparent);
-        if self.demo || self.history == Some(id) {
-            let body = widget::scrollable(content).height(Length::Fill);
+        let view: Element<'_, Message> = if self.demo || self.history == Some(id) {
+            let body: Element<'_, Message> =
+                widget::scrollable(content).height(Length::Fill).into();
+            let body: Element<'_, Message> = if self.sidebar_width() > 0.0 {
+                let mut sidebar = widget::column([])
+                    .spacing(8)
+                    .push(widget::text(tr!("Bibliothèque", "Library")).size(16))
+                    .push(
+                        widget::button::text(tr!("Historique", "History"))
+                            .on_press(Message::Favorites(false)),
+                    )
+                    .push(
+                        widget::button::text(tr!("Favoris", "Favorites"))
+                            .on_press(Message::Favorites(true)),
+                    )
+                    .push(widget::text(tr!("Collections", "Collections")).size(12));
+                for name in &self.collections {
+                    sidebar = sidebar.push(self.collection_button(name));
+                }
+                sidebar = sidebar.push(
+                    widget::button::text(tr!("Gérer…", "Manage…"))
+                        .on_press(Message::Collections(true)),
+                );
+                widget::row([])
+                    .push(
+                        widget::scrollable(widget::container(sidebar).padding(12))
+                            .width(self.sidebar_width())
+                            .height(Length::Fill),
+                    )
+                    .push(body)
+                    .into()
+            } else {
+                body
+            };
             let mut window = widget::column([]);
             if !self.demo {
                 window = window.push(
@@ -1427,19 +1830,50 @@ impl cosmic::Application for App {
         } else {
             self.core
                 .applet
-                .popup_container(widget::scrollable(content).height(Length::Shrink))
+                .popup_container(
+                    widget::container(widget::scrollable(content).height(Length::Shrink))
+                        .class(skin::popup_surface()),
+                )
                 .limits(
                     Limits::NONE
-                        .min_width(WIDTH_POPUP)
-                        .max_width(WIDTH_POPUP)
+                        .min_width(WIDTH_MIN)
+                        .max_width(self.ideal_width())
                         .max_height(850.0),
                 )
+                .into()
+        };
+        if self.demo {
+            view
+        } else {
+            iced::widget::themer(Some(self.application_theme.clone()), view)
+                .text_color(|theme| theme.cosmic().on_bg_color().into())
                 .into()
         }
     }
     fn subscription(&self) -> Subscription<Message> {
         let mut subscriptions =
             vec![iced::time::every(Duration::from_millis(100)).map(|_| Message::Tick)];
+        if !self.demo {
+            // Panel appearance can force a mode and suppress libcosmic's mode callback.
+            // Watch application palettes independently; never read config during rendering.
+            subscriptions.extend([
+                self.core
+                    .watch_config::<cosmic::cosmic_theme::ThemeMode>(
+                        cosmic::cosmic_theme::THEME_MODE_ID,
+                    )
+                    .map(|_| Message::ReloadAppearance),
+                self.core
+                    .watch_config::<cosmic::cosmic_theme::Theme>(
+                        cosmic::cosmic_theme::DARK_THEME_ID,
+                    )
+                    .map(|_| Message::ReloadAppearance),
+                self.core
+                    .watch_config::<cosmic::cosmic_theme::Theme>(
+                        cosmic::cosmic_theme::LIGHT_THEME_ID,
+                    )
+                    .map(|_| Message::ReloadAppearance),
+            ]);
+        }
         if self.popup.is_some() || self.history.is_some() || self.demo {
             subscriptions.push(iced::event::listen_with(|event, status, id| {
                 if matches!(
@@ -1488,12 +1922,171 @@ impl cosmic::Application for App {
     }
     fn update(&mut self, message: Message) -> Task<cosmic::Action<Message>> {
         match message {
+            Message::ReloadAppearance => {
+                self.application_theme = cosmic::theme::system_preference();
+            }
+            Message::TogglePopupSize => {
+                if !self.is_popup() {
+                    return Task::none();
+                }
+                self.settings.popup_expanded = !self.settings.popup_expanded;
+                self.save_settings();
+                self.viewport = self.ideal_width();
+                self.refresh();
+                self.dragging = false;
+                let Some(parent) = self.core.main_window_id() else {
+                    return Task::none();
+                };
+                let close = self.popup.take().map_or_else(Task::none, destroy_popup);
+                let id = Id::unique();
+                self.popup = Some(id);
+                let mut settings = self.core.applet.get_popup_settings(
+                    parent,
+                    id,
+                    Some((self.ideal_width() as u32, 600)),
+                    None,
+                    None,
+                );
+                // Slide, flip and resize on either axis when constrained by the output.
+                settings.positioner.constraint_adjustment = 63;
+                settings.positioner.size_limits = Limits::NONE
+                    .min_width(WIDTH_MIN)
+                    .max_width(self.ideal_width())
+                    .min_height(200.0)
+                    .max_height(900.0);
+                return close
+                    .chain(get_popup(settings))
+                    .chain(widget::text_input::focus(self.search_id.clone()));
+            }
+            Message::Collections(open) => {
+                self.collections_open = open;
+                self.settings_open = false;
+                self.collection_delete = None;
+            }
+            Message::EditCollection(name) => {
+                self.collection_name = name.clone().unwrap_or_default();
+                self.collection_target = name;
+                self.collection_delete = None;
+            }
+            Message::CollectionName(name) => self.collection_name = name.chars().take(40).collect(),
+            Message::SaveCollection => {
+                let name = match Store::collection_name(&self.collection_name) {
+                    Ok(name) => name,
+                    Err(e) => {
+                        self.status = e;
+                        return Task::none();
+                    }
+                };
+                let old = self.collection_target.clone();
+                if self.write(|store| match &old {
+                    Some(old) => store.rename_collection(old, &name),
+                    None => store.create_collection(&name),
+                }) {
+                    if old.as_ref() == Some(&self.category_edit) {
+                        self.category_edit = name.clone();
+                    }
+                    if old.as_ref() == Some(&self.category) {
+                        self.category = name.clone();
+                    }
+                    if let Some(undo) = &mut self.undo {
+                        if old.as_ref() == Some(&undo.clip.category) {
+                            undo.clip.category = name.clone();
+                        }
+                    }
+                    self.collection_name.clear();
+                    self.collection_target = None;
+                    self.flash(tr!("Collection enregistrée", "Collection saved"));
+                }
+            }
+            Message::AskDeleteCollection(name) => self.collection_delete = name,
+            Message::DeleteCollection => {
+                if let Some(name) = self.collection_delete.clone() {
+                    if self.write(|store| store.delete_collection(&name)) {
+                        if self.category_edit == name {
+                            self.category_edit.clear();
+                        }
+                        if self.category == name {
+                            self.category.clear();
+                        }
+                        if let Some(undo) = &mut self.undo {
+                            if undo.clip.category == name {
+                                undo.clip.category.clear();
+                            }
+                        }
+                        self.collection_delete = None;
+                        self.collection_target = None;
+                        self.collection_name.clear();
+                        self.flash(tr!(
+                            "Collection supprimée · copies conservées",
+                            "Collection deleted · clips kept"
+                        ));
+                    }
+                }
+            }
+            Message::FileClip(id, collection) => {
+                if self.collections.contains(&collection) && self.clips.iter().any(|c| c.id == id) {
+                    self.dragging = false;
+                    if self.write(|store| store.category(&id, &collection)) {
+                        self.flash(tr!("Copie classée", "Clip filed"));
+                    }
+                }
+            }
+            Message::Indexing => {
+                let enabled = !self.settings.ocr_indexing;
+                // Failure to erase must be reported; do not pretend the index is gone.
+                if !enabled && !self.write(Store::clear_image_index) {
+                    return Task::none();
+                }
+                self.settings.ocr_indexing = enabled;
+                self.invalidate_index();
+                self.save_settings();
+                self.refresh();
+            }
+            Message::Reindex => {
+                if self.write(Store::clear_image_index) {
+                    self.invalidate_index();
+                    self.refresh();
+                }
+            }
+            Message::IndexDone(generation, id, result) => {
+                if self.index_busy.as_ref() != Some(&(generation, id.clone())) {
+                    return Task::none();
+                }
+                self.index_busy = None;
+                if generation != self.index_generation
+                    || !self.settings.ocr_indexing
+                    || !self.clips.iter().any(|c| c.id == id)
+                {
+                    return Task::none();
+                }
+                match result {
+                    Ok(text) => {
+                        let language = self.settings.ocr_language;
+                        if !self.write(|store| store.index_image(&id, language, &text).map(|_| ()))
+                        {
+                            self.index_error = Some(self.status.clone());
+                        }
+                    }
+                    Err(e) => {
+                        self.index_error = Some(tr_format!(
+                            "Image non indexée : {e}. Réessayer dans Préférences.",
+                            "Image not indexed: {e}. Retry in Preferences."
+                        ))
+                    }
+                }
+            }
             Message::FocusSearch => {
                 self.detail = None;
+                self.collections_open = false;
+                self.settings_open = false;
                 return widget::text_input::focus(self.search_id.clone());
             }
             Message::Escape => {
-                if self.clear_confirm {
+                if self.collection_delete.is_some() {
+                    self.collection_delete = None;
+                } else if self.collections_open {
+                    self.collections_open = false;
+                } else if self.clear_confirm {
                     self.clear_confirm = false;
                 } else if self.pause_menu {
                     self.pause_menu = false;
@@ -1519,6 +2112,8 @@ impl cosmic::Application for App {
             }
             Message::OcrLanguage => {
                 self.settings.cycle_ocr_language();
+                self.invalidate_index();
+                self.refresh();
                 self.save_settings();
             }
             Message::Density => {
@@ -1567,6 +2162,7 @@ impl cosmic::Application for App {
             }
             Message::Settings(open) => {
                 self.settings_open = open;
+                self.collections_open = false;
                 self.pause_menu = false;
             }
             Message::WindowResized(id, width) => {
@@ -1581,7 +2177,11 @@ impl cosmic::Application for App {
                 }
             }
             Message::Ocr(id) => {
-                if self.ocr_busy {
+                if self.ocr_busy || self.index_busy.is_some() {
+                    self.flash(tr!(
+                        "OCR occupé, réessaie dans un instant",
+                        "OCR busy, try again shortly"
+                    ));
                     return Task::none();
                 }
                 if let Some(clip) = self
@@ -1727,7 +2327,9 @@ impl cosmic::Application for App {
                     .history
                     .take()
                     .map_or_else(Task::none, iced::window::close);
-                self.viewport = WIDTH_POPUP;
+                self.viewport = self.ideal_width();
+                self.collections_open = false;
+                self.collection_delete = None;
                 self.reset();
                 let Some(parent) = self.core.main_window_id() else {
                     return Task::none();
@@ -1743,9 +2345,11 @@ impl cosmic::Application for App {
                     .core
                     .applet
                     .get_popup_settings(parent, id, None, None, None);
+                // Slide, flip and resize on either axis when constrained by the output.
+                settings.positioner.constraint_adjustment = 63;
                 settings.positioner.size_limits = Limits::NONE
                     .min_width(WIDTH_MIN)
-                    .max_width(WIDTH_POPUP)
+                    .max_width(self.ideal_width())
                     .min_height(200.0)
                     .max_height(900.0);
                 return close_history
@@ -1828,6 +2432,7 @@ impl cosmic::Application for App {
                         _ => {}
                     }
                 }
+                return self.index_next();
             }
             Message::Search(query) => {
                 self.query = query;
@@ -1838,11 +2443,15 @@ impl cosmic::Application for App {
                 self.reset();
             }
             Message::Favorites(favorites) => {
+                self.collections_open = false;
+                self.settings_open = false;
                 self.favorites = favorites;
                 self.category.clear();
                 self.reset();
             }
             Message::Category(category) => {
+                self.collections_open = false;
+                self.settings_open = false;
                 self.category = category;
                 self.favorites = false;
                 self.reset();
@@ -1903,6 +2512,7 @@ impl cosmic::Application for App {
                 }
             }
             Message::Delete(id) => {
+                self.invalidate_index();
                 if let Some(clip) = self.clips.iter().find(|c| c.id == id).cloned() {
                     self.monitor.invalidate();
                     if self.write(|store| store.delete(&id)) {
@@ -2009,6 +2619,7 @@ impl cosmic::Application for App {
             Message::AskClear => self.clear_confirm = true,
             Message::CancelClear => self.clear_confirm = false,
             Message::Clear => {
+                self.invalidate_index();
                 self.monitor.invalidate();
                 self.undo = None;
                 self.write(Store::clear_unpinned);
@@ -2124,8 +2735,8 @@ mod tests {
     #[test]
     fn a_narrow_panel_reduces_the_grid_instead_of_hiding_cards() {
         let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
-        assert_eq!(app.columns(), 4);
-        assert_eq!(app.page_size(), 8);
+        assert_eq!(app.columns(), 3);
+        assert_eq!(app.page_size(), 6);
         let _ = app.update(Message::Viewport(520.0));
         assert_eq!(app.columns(), 2);
         assert_eq!(app.page_size(), 4);
@@ -2253,5 +2864,127 @@ mod tests {
         let _ = app.update(Message::Density);
         assert_eq!(app.width(), 360.0);
         assert_eq!(app.columns(), 1);
+    }
+    #[test]
+    fn disabling_indexing_discards_in_flight_result_and_erases_saved_text() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        app.settings.ocr_indexing = true;
+        let id = app
+            .clips
+            .iter()
+            .find(|c| c.kind == Kind::Image)
+            .unwrap()
+            .id
+            .clone();
+        let generation = app.index_generation;
+        app.index_busy = Some((generation, id.clone()));
+        app.store
+            .as_ref()
+            .unwrap()
+            .index_image(&id, app.settings.ocr_language, "old result")
+            .unwrap();
+        let _ = app.update(Message::Indexing);
+        assert!(!app.settings.ocr_indexing);
+        let _ = app.update(Message::IndexDone(generation, id, Ok("late result".into())));
+        assert!(app.index_busy.is_none());
+        assert!(
+            app.store
+                .as_ref()
+                .unwrap()
+                .image_index(app.settings.ocr_language)
+                .unwrap()
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn reindex_waits_for_existing_worker_and_rejects_its_old_result() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        app.settings.ocr_indexing = true;
+        let id = app
+            .clips
+            .iter()
+            .find(|c| c.kind == Kind::Image)
+            .unwrap()
+            .id
+            .clone();
+        let generation = app.index_generation;
+        app.index_busy = Some((generation, id.clone()));
+        let _ = app.update(Message::Reindex);
+        let _ = app.index_next();
+        assert_eq!(app.index_busy, Some((generation, id.clone())));
+        let _ = app.update(Message::IndexDone(generation, id, Ok("stale".into())));
+        assert!(app.index_busy.is_none());
+        assert!(app.image_index.is_empty());
+    }
+    #[test]
+    fn deleted_then_recaptured_image_rejects_old_index_result() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        app.settings.ocr_indexing = true;
+        let clip = app
+            .clips
+            .iter()
+            .find(|c| c.kind == Kind::Image)
+            .unwrap()
+            .clone();
+        let generation = app.index_generation;
+        app.index_busy = Some((generation, clip.id.clone()));
+        let _ = app.update(Message::Delete(clip.id.clone()));
+        app.store.as_mut().unwrap().insert(&clip).unwrap();
+        app.refresh();
+        let _ = app.update(Message::IndexDone(generation, clip.id, Ok("stale".into())));
+        assert!(app.image_index.is_empty());
+        assert!(app.index_busy.is_none());
+    }
+
+    #[test]
+    fn collection_changes_update_pending_undo_without_resurrecting_old_names() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        let id = app.clips[0].id.clone();
+        app.store.as_ref().unwrap().category(&id, "Work").unwrap();
+        app.refresh();
+        let _ = app.update(Message::Delete(id.clone()));
+        let _ = app.update(Message::EditCollection(Some("Work".into())));
+        let _ = app.update(Message::CollectionName("Projects".into()));
+        let _ = app.update(Message::SaveCollection);
+        assert_eq!(app.undo.as_ref().unwrap().clip.category, "Projects");
+        let _ = app.update(Message::AskDeleteCollection(Some("Projects".into())));
+        let _ = app.update(Message::DeleteCollection);
+        let _ = app.update(Message::Undo);
+        assert!(
+            app.clips
+                .iter()
+                .find(|c| c.id == id)
+                .unwrap()
+                .category
+                .is_empty()
+        );
+        assert!(
+            !app.collections
+                .iter()
+                .any(|n| n == "Work" || n == "Projects")
+        );
+    }
+    #[test]
+    fn popup_size_toggle_preserves_filters_and_uses_grid() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        app.demo = false;
+        app.query = "test".into();
+        app.category = "Work".into();
+        app.favorites = true;
+        let _ = app.update(Message::TogglePopupSize);
+        assert!(app.settings.popup_expanded);
+        assert_eq!(app.width(), WIDTH_WIDE);
+        assert_eq!(app.columns(), 4);
+        assert_eq!(app.page_size(), 8);
+        assert_eq!(app.query, "test");
+        assert_eq!(app.category, "Work");
+        assert!(app.favorites);
+        let _ = app.update(Message::Viewport(470.0));
+        assert_eq!(app.columns(), 1);
+        let _ = app.update(Message::TogglePopupSize);
+        assert!(!app.settings.popup_expanded);
+        assert_eq!(app.width(), WIDTH_POPUP);
+        assert_eq!(app.page_size(), 5);
     }
 }

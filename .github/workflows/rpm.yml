@@ -1,0 +1,26 @@
+name: Fedora RPM
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, v0.7-search-collections]
+permissions:
+  contents: read
+jobs:
+  rpm:
+    runs-on: ubuntu-24.04
+    container: fedora:44
+    timeout-minutes: 60
+    steps:
+      - name: Build dependencies
+        run: dnf install -y git cargo rust gcc-c++ cmake make rpm-build pkgconf-pkg-config libxkbcommon-devel wayland-devel fontconfig-devel freetype-devel desktop-file-utils python3 tar gzip findutils diffutils
+      - uses: actions/checkout@v4
+      - name: Build binary and source RPMs
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          bash scripts/build-rpm.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nebula-paste-fedora44-rpm
+          path: dist/rpm/*
+          if-no-files-found: error
+          retention-days: 30

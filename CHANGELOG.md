@@ -2,6 +2,25 @@
 
 [Français](CHANGELOG.fr.md)
 
+## Unreleased — 0.8 preparation
+
+- 2A identity: nebula with capture corners; color launcher/header SVG and symbolic panel SVG.
+- SVG proof sheet at 16, 24 and 32 px on light/dark backgrounds; system interface theme retained.
+- FR/EN 0.8–1.0 roadmap and design rules. Reusable templates are not implemented yet; this change includes no data migration or binary version bump.
+
+## 0.7.0-beta.1 — Search and collections
+
+- Shorter popup: five 72-unit rows, smaller previews and side actions; opaque surface and filters without horizontal scrolling.
+- Search folds Latin accents, French ligatures and decomposed accents, including OCR text, while preserving original content.
+- Opt-in local image-text search with a persistent index capped at 16,384 characters per image and no extra text clips.
+- Sequential background OCR, language selection, progress, recognized text in details and manual reindexing.
+- Index erasure on disable and source deletion; stale results rejected after deletion or settings changes.
+- Persistent collections, including empty ones: creation, atomic rename and confirmed deletion preserving clips and favorites.
+- Automatic 0.6 category migration, adaptive history sidebar and internal drag-to-file.
+- Upstream Fedora RPM packaging with vendored Rust dependencies, license inventory and build workflow.
+- French/English documentation and test guides; migration, search, data preservation and OCR lifecycle regression tests.
+- Beta: interactive Fedora COSMIC validation still required. Reusable snippets deferred to a later release.
+
 ## 0.6.0-beta.1 — COSMIC integration
 
 - Follow the system theme for surfaces, controls, text and symbolic icons.

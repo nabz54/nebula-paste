@@ -2,6 +2,12 @@
 
 [Français](CHANGELOG.fr.md)
 
+## Unreleased — 0.8 preparation
+
+- 2A identity: nebula with capture corners; color launcher/header SVG and symbolic panel SVG.
+- SVG proof sheet at 16, 24 and 32 px on light/dark backgrounds; system interface theme retained.
+- FR/EN 0.8–1.0 roadmap and design rules. Reusable templates are not implemented yet; this change includes no data migration or binary version bump.
+
 ## 0.7.0-beta.1 — Search and collections
 
 - Shorter popup: five 72-unit rows, smaller previews and side actions; opaque surface and filters without horizontal scrolling.

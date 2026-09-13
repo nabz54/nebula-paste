@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="590" viewBox="0 0 880 590">
+<rect width="880" height="590" fill="#f5f4f1"/>
+<g font-family="sans-serif" fill="#272631"><text x="40" y="45" font-size="24" font-weight="bold">NEBULA PASTE · 2A</text><text x="40" y="72" font-size="14">SVG implementation / version vectorielle</text></g>
+<svg x="80" y="95" xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 24 24">
+<title>Nebula Paste</title>
+<desc>Dust Capture: violet nebula, lavender gas and turquoise accent between capture corners.</desc>
+<defs><clipPath id="nebula"><path clip-rule="evenodd" d="M9 6C11 3 16 4 16 7C16 8.5 18 7 19.5 9C22 12 19 15 17 15C17.5 18 15.5 20 13 19C11 22 7 20 7 18C3 17 3 13 6 11C7 10 7 8 9 6ZM12 9L13.25 11.75L16 13L13.25 14.25L12 17L10.75 14.25L8 13L10.75 11.75Z"/></clipPath></defs>
+<path fill="#35246b" d="M3 2H8V4H4V8H2V3Q2 2 3 2ZM20 16H22V21Q22 22 21 22H16V20H20Z"/>
+<path fill="#5135a4" fill-rule="evenodd" d="M9 6C11 3 16 4 16 7C16 8.5 18 7 19.5 9C22 12 19 15 17 15C17.5 18 15.5 20 13 19C11 22 7 20 7 18C3 17 3 13 6 11C7 10 7 8 9 6ZM12 9L13.25 11.75L16 13L13.25 14.25L12 17L10.75 14.25L8 13L10.75 11.75Z"/>
+<g clip-path="url(#nebula)">
+<path fill="#aa82ef" d="M15 5C14 9 18 8 18 11C18 13 16 14 17 16L23 16V4Z"/>
+<path fill="#78ded9" d="M8 14C10 13 10 16 12 17C15 19 13 22 10 22C6 22 6 16 8 14Z"/>
+</g>
+</svg>
+
+<svg x="335" y="95" xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 24 24">
+<title>Nebula Paste</title>
+<desc>Capture corners around a nebula with a stellar opening. Concept 2A.</desc>
+<g fill="#2e3436">
+<path d="M3 2H8V4H4V8H2V3Q2 2 3 2ZM20 16H22V21Q22 22 21 22H16V20H20Z"/>
+<path fill-rule="evenodd" d="M9 6C11 3 16 4 16 7C16 8.5 18 7 19.5 9C22 12 19 15 17 15C17.5 18 15.5 20 13 19C11 22 7 20 7 18C3 17 3 13 6 11C7 10 7 8 9 6ZM12 9L13.25 11.75L16 13L13.25 14.25L12 17L10.75 14.25L8 13L10.75 11.75Z"/>
+</g>
+</svg>
+
+<rect x="600" y="95" width="144" height="144" rx="12" fill="#252631"/>
+<svg x="612" y="107" xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24">
+<title>Nebula Paste</title>
+<desc>Capture corners around a nebula with a stellar opening. Concept 2A.</desc>
+<g fill="#f5f4f1">
+<path d="M3 2H8V4H4V8H2V3Q2 2 3 2ZM20 16H22V21Q22 22 21 22H16V20H20Z"/>
+<path fill-rule="evenodd" d="M9 6C11 3 16 4 16 7C16 8.5 18 7 19.5 9C22 12 19 15 17 15C17.5 18 15.5 20 13 19C11 22 7 20 7 18C3 17 3 13 6 11C7 10 7 8 9 6ZM12 9L13.25 11.75L16 13L13.25 14.25L12 17L10.75 14.25L8 13L10.75 11.75Z"/>
+</g>
+</svg>
+
+<text x="40" y="278" font-family="sans-serif" font-size="14" fill="#272631">Dark / Sombre · 16 / 24 / 32 px</text>
+<rect x="40" y="290" width="800" height="64" rx="10" fill="#252631"/>
+<svg x="75" y="314.0" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+<title>Nebula Paste</title>
+<desc>Capture corners around a nebula with a stellar opening. Concept 2A.</desc>
+<g fill="#f5f4f1">
+<path d="M3 2H8V4H4V8H2V3Q2 2 3 2ZM20 16H22V21Q22 22 21 22H16V20H20Z"/>
+<path fill-rule="evenodd" d="M9 6C11 3 16 4 16 7C16 8.5 18 7 19.5 9C22 12 19 15 17 15C17.5 18 15.5 20 13 19C11 22 7 20 7 18C3 17 3 13 6 11C7 10 7 8 9 6ZM12 9L13.25 11.75L16 13L13.25 14.25L12 17L10.75 14.25L8 13L10.75 11.75Z"/>
+</g>
+</svg>
+
+<svg x="160" y="310.0" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+<title>Nebula Paste</title>
+<desc>Capture corners around a nebula with a stellar opening. Concept 2A.</desc>
+<g fill="#f5f4f1">
+<path d="M3 2H8V4H4V8H2V3Q2 2 3 2ZM20 16H22V21Q22 22 21 22H16V20H20Z"/>
+<path fill-rule="evenodd" d="M9 6C11 3 16 4 16 7C16 8.5 18 7 19.5 9C22 12 19 15 17 15C17.5 18 15.5 20 13 19C11 22 7 20 7 18C3 17 3 13 6 11C7 10 7 8 9 6ZM12 9L13.25 11.75L16 13L13.25 14.25L12 17L10.75 14.25L8 13L10.75 11.75Z"/>
+</g>
+</svg>
+
+<svg x="253" y="306.0" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24">
+<title>Nebula Paste</title>
+<desc>Capture corners around a nebula with a stellar opening. Concept 2A.</desc>
+<g fill="#f5f4f1">
+<path d="M3 2H8V4H4V8H2V3Q2 2 3 2ZM20 16H22V21Q22 22 21 22H16V20H20Z"/>
+<path fill-rule="evenodd" d="M9 6C11 3 16 4 16 7C16 8.5 18 7 19.5 9C22 12 19 15 17 15C17.5 18 15.5 20 13 19C11 22 7 20 7 18C3 17 3 13 6 11C7 10 7 8 9 6ZM12 9L13.25 11.75L16 13L13.25 14.25L12 17L10.75 14.25L8 13L10.75 11.75Z"/>
+</g>
+</svg>
+
+<text x="670" y="329" font-family="sans-serif" font-size="19" fill="#f5f4f1">16:42</text>
+<text x="40" y="408" font-family="sans-serif" font-size="14" fill="#272631">Light / Clair · 16 / 24 / 32 px</text>
+<rect x="40" y="420" width="800" height="64" rx="10" fill="#e5e4e1"/>
+<svg x="75" y="444.0" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+<title>Nebula Paste</title>
+<desc>Capture corners around a nebula with a stellar opening. Concept 2A.</desc>
+<g fill="#272631">
+<path d="M3 2H8V4H4V8H2V3Q2 2 3 2ZM20 16H22V21Q22 22 21 22H16V20H20Z"/>
+<path fill-rule="evenodd" d="M9 6C11 3 16 4 16 7C16 8.5 18 7 19.5 9C22 12 19 15 17 15C17.5 18 15.5 20 13 19C11 22 7 20 7 18C3 17 3 13 6 11C7 10 7 8 9 6ZM12 9L13.25 11.75L16 13L13.25 14.25L12 17L10.75 14.25L8 13L10.75 11.75Z"/>
+</g>
+</svg>
+
+<svg x="160" y="440.0" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+<title>Nebula Paste</title>
+<desc>Capture corners around a nebula with a stellar opening. Concept 2A.</desc>
+<g fill="#272631">
+<path d="M3 2H8V4H4V8H2V3Q2 2 3 2ZM20 16H22V21Q22 22 21 22H16V20H20Z"/>
+<path fill-rule="evenodd" d="M9 6C11 3 16 4 16 7C16 8.5 18 7 19.5 9C22 12 19 15 17 15C17.5 18 15.5 20 13 19C11 22 7 20 7 18C3 17 3 13 6 11C7 10 7 8 9 6ZM12 9L13.25 11.75L16 13L13.25 14.25L12 17L10.75 14.25L8 13L10.75 11.75Z"/>
+</g>
+</svg>
+
+<svg x="253" y="436.0" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24">
+<title>Nebula Paste</title>
+<desc>Capture corners around a nebula with a stellar opening. Concept 2A.</desc>
+<g fill="#272631">
+<path d="M3 2H8V4H4V8H2V3Q2 2 3 2ZM20 16H22V21Q22 22 21 22H16V20H20Z"/>
+<path fill-rule="evenodd" d="M9 6C11 3 16 4 16 7C16 8.5 18 7 19.5 9C22 12 19 15 17 15C17.5 18 15.5 20 13 19C11 22 7 20 7 18C3 17 3 13 6 11C7 10 7 8 9 6ZM12 9L13.25 11.75L16 13L13.25 14.25L12 17L10.75 14.25L8 13L10.75 11.75Z"/>
+</g>
+</svg>
+
+<text x="670" y="459" font-family="sans-serif" font-size="19" fill="#272631">16:42</text>
+<text x="40" y="555" font-family="sans-serif" font-size="13" fill="#555360">Native SVG sizes at 100% zoom · COSMIC session validation still required</text></svg>

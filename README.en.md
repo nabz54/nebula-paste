@@ -4,6 +4,12 @@
 
 A local **Rust/libcosmic clipboard manager** for Fedora COSMIC: text, images, links, colors, code and file references. An independent project, not affiliated with Supaste or System76.
 
+## In preparation — 0.8
+
+The **2A · Dust Capture** identity is integrated: [SVG preview](docs/identity-2a.svg) and [design principles](docs/DESIGN-2A.en.md). The interface retains the COSMIC theme.
+
+The [0.8 → 1.0 roadmap](docs/ROADMAP.en.md) defines reusable templates and validation criteria. Templates are **planned, not available yet**. The binary remains 0.7.0-beta.1. This design branch builds on the 0.7 beta; the instructions below install that beta, without the new artwork on `v0.8-identity-roadmap`.
+
 ## 0.7.0-beta.1 — Search and collections
 
 - Search image text using embedded local OCR, enabled explicitly in Preferences.

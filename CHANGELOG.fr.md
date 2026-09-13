@@ -2,6 +2,12 @@
 
 [English](CHANGELOG.md)
 
+## Non publié — préparation 0.8
+
+- Identité 2A : nébuleuse et angles de capture, SVG couleur pour le lanceur/en-tête et symbolique pour le panneau.
+- Aperçu des SVG à 16, 24 et 32 px sur fonds clair et sombre ; thème de l’interface conservé.
+- Roadmap 0.8–1.0 et règles de design FR/EN. Modèles réutilisables non encore implémentés ; aucune migration ni augmentation de version du binaire dans ce changement.
+
 ## 0.7.0-beta.1 — Recherche et collections
 
 - Popup raccourci : cinq lignes de 72 unités, miniatures réduites et actions latérales ; fond opaque et filtres sans défilement horizontal.

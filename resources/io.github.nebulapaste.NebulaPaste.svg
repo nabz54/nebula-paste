@@ -1,9 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-<title>Nebula Paste</title><desc>Deux feuilles violettes et une étoile cyan.</desc>
-<defs><linearGradient id="sheet" x1="0" y1="0" x2="0.8" y2="1"><stop stop-color="#d8caff"/><stop offset="1" stop-color="#9b87ed"/></linearGradient></defs>
-<rect x="20" y="28" width="68" height="86" rx="16" fill="#443c72"/>
-<rect x="36" y="12" width="68" height="86" rx="16" fill="url(#sheet)"/>
-<path d="M53 43h29M53 57h29M53 71h17" fill="none" stroke="#393251" stroke-width="6" stroke-linecap="round"/>
-<path d="m101 70 6 15 15 6-15 6-6 15-6-15-15-6 15-6z" fill="#17252f" stroke="#17252f" stroke-width="8" stroke-linejoin="round"/>
-<path d="m101 70 6 15 15 6-15 6-6 15-6-15-15-6 15-6z" fill="#73dfd3"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 24 24">
+<title>Nebula Paste</title>
+<desc>Dust Capture: violet nebula, lavender gas and turquoise accent between capture corners.</desc>
+<defs><clipPath id="nebula"><path clip-rule="evenodd" d="M9 6C11 3 16 4 16 7C16 8.5 18 7 19.5 9C22 12 19 15 17 15C17.5 18 15.5 20 13 19C11 22 7 20 7 18C3 17 3 13 6 11C7 10 7 8 9 6ZM12 9L13.25 11.75L16 13L13.25 14.25L12 17L10.75 14.25L8 13L10.75 11.75Z"/></clipPath></defs>
+<path fill="#35246b" d="M3 2H8V4H4V8H2V3Q2 2 3 2ZM20 16H22V21Q22 22 21 22H16V20H20Z"/>
+<path fill="#5135a4" fill-rule="evenodd" d="M9 6C11 3 16 4 16 7C16 8.5 18 7 19.5 9C22 12 19 15 17 15C17.5 18 15.5 20 13 19C11 22 7 20 7 18C3 17 3 13 6 11C7 10 7 8 9 6ZM12 9L13.25 11.75L16 13L13.25 14.25L12 17L10.75 14.25L8 13L10.75 11.75Z"/>
+<g clip-path="url(#nebula)">
+<path fill="#aa82ef" d="M15 5C14 9 18 8 18 11C18 13 16 14 17 16L23 16V4Z"/>
+<path fill="#78ded9" d="M8 14C10 13 10 16 12 17C15 19 13 22 10 22C6 22 6 16 8 14Z"/>
+</g>
 </svg>

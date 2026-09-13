@@ -4,6 +4,12 @@
 
 Un gestionnaire de presse-papiers local en **Rust/libcosmic** pour Fedora COSMIC : textes, images, liens, couleurs, code et références de fichiers. Projet indépendant, sans affiliation à Supaste ou System76.
 
+## En préparation — 0.8
+
+L’identité **2A · Capture cosmique** est intégrée : [aperçu SVG](docs/identity-2a.svg) et [principes de design](docs/DESIGN-2A.md). L’interface conserve le thème COSMIC.
+
+La [roadmap 0.8 → 1.0](docs/ROADMAP.md) détaille les modèles réutilisables et les critères de validation. Les modèles sont **prévus, pas encore disponibles**. Le binaire reste en 0.7.0-beta.1. Cette branche de design se base sur la bêta 0.7 ; les instructions ci-dessous installent cette bêta, sans les nouveaux assets de la branche `v0.8-identity-roadmap`.
+
 ## 0.7.0-beta.1 — Recherche et collections
 
 - Recherche dans le texte des images grâce à l’OCR local embarqué, à activer dans les préférences.

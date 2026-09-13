@@ -49,6 +49,7 @@ pub enum Mode {
 }
 pub struct App {
     core: cosmic::Core,
+    application_theme: cosmic::Theme,
     popup: Option<Id>,
     history: Option<Id>,
     instance: Option<Instance>,
@@ -107,6 +108,7 @@ struct Undo {
 #[derive(Debug, Clone)]
 pub enum Message {
     Toggle,
+    ReloadAppearance,
     TogglePopupSize,
     Collections(bool),
     EditCollection(Option<String>),
@@ -1106,6 +1108,7 @@ impl cosmic::Application for App {
         }
         let mut app = Self {
             core,
+            application_theme: cosmic::theme::system_preference(),
             popup: None,
             history: None,
             instance,
@@ -1775,7 +1778,7 @@ impl cosmic::Application for App {
             .width(self.width() - self.sidebar_width())
             .padding(if compact { 12 } else { 18 })
             .class(cosmic::theme::Container::Transparent);
-        if self.demo || self.history == Some(id) {
+        let view: Element<'_, Message> = if self.demo || self.history == Some(id) {
             let body: Element<'_, Message> =
                 widget::scrollable(content).height(Length::Fill).into();
             let body: Element<'_, Message> = if self.sidebar_width() > 0.0 {
@@ -1838,11 +1841,39 @@ impl cosmic::Application for App {
                         .max_height(850.0),
                 )
                 .into()
+        };
+        if self.demo {
+            view
+        } else {
+            iced::widget::themer(Some(self.application_theme.clone()), view)
+                .text_color(|theme| theme.cosmic().on_bg_color().into())
+                .into()
         }
     }
     fn subscription(&self) -> Subscription<Message> {
         let mut subscriptions =
             vec![iced::time::every(Duration::from_millis(100)).map(|_| Message::Tick)];
+        if !self.demo {
+            // Panel appearance can force a mode and suppress libcosmic's mode callback.
+            // Watch application palettes independently; never read config during rendering.
+            subscriptions.extend([
+                self.core
+                    .watch_config::<cosmic::cosmic_theme::ThemeMode>(
+                        cosmic::cosmic_theme::THEME_MODE_ID,
+                    )
+                    .map(|_| Message::ReloadAppearance),
+                self.core
+                    .watch_config::<cosmic::cosmic_theme::Theme>(
+                        cosmic::cosmic_theme::DARK_THEME_ID,
+                    )
+                    .map(|_| Message::ReloadAppearance),
+                self.core
+                    .watch_config::<cosmic::cosmic_theme::Theme>(
+                        cosmic::cosmic_theme::LIGHT_THEME_ID,
+                    )
+                    .map(|_| Message::ReloadAppearance),
+            ]);
+        }
         if self.popup.is_some() || self.history.is_some() || self.demo {
             subscriptions.push(iced::event::listen_with(|event, status, id| {
                 if matches!(
@@ -1891,6 +1922,9 @@ impl cosmic::Application for App {
     }
     fn update(&mut self, message: Message) -> Task<cosmic::Action<Message>> {
         match message {
+            Message::ReloadAppearance => {
+                self.application_theme = cosmic::theme::system_preference();
+            }
             Message::TogglePopupSize => {
                 if !self.is_popup() {
                     return Task::none();

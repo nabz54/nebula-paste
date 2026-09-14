@@ -1,8 +1,8 @@
-%global crate_version 0.7.0-beta.1
+%global crate_version 0.8.0-beta.1
 %global debug_package %{nil}
 
 Name:           nebula-paste
-Version:        0.7.0~beta.1
+Version:        0.8.0~beta.1
 Release:        1%{?dist}
 Summary:        Local clipboard history applet for COSMIC
 License:        MPL-2.0 AND Apache-2.0 AND BSD-2-Clause AND MIT
@@ -59,5 +59,8 @@ bash scripts/check-embedded-ocr.sh target/release/nebula-paste
 %{_datadir}/icons/hicolor/scalable/apps/io.github.nebulapaste.NebulaPaste-symbolic.svg
 
 %changelog
+* Mon Sep 14 2026 Nebula Paste contributors - 0.8.0~beta.1-1
+- Reusable templates, literal fields and transactional JSON import/export.
+
 * Sat Sep 12 2026 Nebula Paste contributors - 0.7.0~beta.1-1
 - Initial upstream Fedora package with vendored Rust dependencies and bundled OCR.

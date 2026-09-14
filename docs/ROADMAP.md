@@ -6,9 +6,9 @@ Les versions ci-dessous sont des objectifs, pas des fonctionnalités déjà livr
 
 ## 0.8 — Identité et modèles réutilisables
 
-**Préparé dans cette branche :** identité 2A couleur et symbolique, aperçu SVG aux tailles du panneau, règles de thème et périmètre ci-dessous. Le binaire reste en 0.7.0-beta.1 ; les modèles ne sont pas encore implémentés.
+**Implémenté en 0.8.0-beta.1 :** identité 2A, modèles persistants, édition, champs littéraux, recherche et import/export avec gestion des conflits. Les essais interactifs Fedora COSMIC restent à effectuer avant une version stable.
 
-**À développer, dans cet ordre :**
+**Fonctions livrées :**
 
 1. Stockage des modèles séparé des copies : identifiant stable, titre, corps, collection facultative, dates de création/modification. Migration additive ; rétention et vidage de l’historique sans effet sur les modèles.
 2. Vue Modèles accessible depuis le popup et la fenêtre complète : créer, modifier, rechercher dans titre/corps, classer, supprimer avec confirmation. Création depuis une copie texte sans modifier l’original.

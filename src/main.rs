@@ -5,6 +5,7 @@ mod ipc;
 mod ocr;
 mod render;
 mod skin;
+mod template_ui;
 mod transfer;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -59,8 +60,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!(
                 "{}",
                 nebula_paste::tr!(
-                    "Nebula Paste\n  Sans option : lancer l’applet\n  --toggle : ouvrir/fermer l’applet déjà actif (raccourci COSMIC)\n  --history : ouvrir l’historique complet de l’applet\n  --preview : démonstration isolée\n  --render-preview fichier.png [full|detail|list|settings|collections|narrow|popup] [light|dark] : capture de démonstration\n  --ocr image.png [fra|eng|fra+eng] : OCR embarqué\n  --version : version",
-                    "Nebula Paste\n  No option: start the applet\n  --toggle: open/close the running applet\n  --history: open the applet’s full history window\n  --preview: isolated demo\n  --render-preview file.png [full|detail|list|settings|collections|narrow|popup] [light|dark]: native widget screenshot\n  --ocr image.png [fra|eng|fra+eng]: embedded OCR\n  --version: version"
+                    "Nebula Paste\n  Sans option : lancer l’applet\n  --toggle : ouvrir/fermer l’applet déjà actif (raccourci COSMIC)\n  --history : ouvrir l’historique complet de l’applet\n  --preview : démonstration isolée\n  --render-preview fichier.png [full|detail|list|settings|collections|narrow|popup|templates|templates-edit|templates-popup|templates-edit-popup] [light|dark] : capture de démonstration\n  --ocr image.png [fra|eng|fra+eng] : OCR embarqué\n  --version : version",
+                    "Nebula Paste\n  No option: start the applet\n  --toggle: open/close the running applet\n  --history: open the applet’s full history window\n  --preview: isolated demo\n  --render-preview file.png [full|detail|list|settings|collections|narrow|popup|templates|templates-edit|templates-popup|templates-edit-popup] [light|dark]: native widget screenshot\n  --ocr image.png [fra|eng|fra+eng]: embedded OCR\n  --version: version"
                 )
             );
             return Ok(());

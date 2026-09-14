@@ -2,11 +2,15 @@
 
 [English](CHANGELOG.md)
 
-## Non publié — préparation 0.8
+## 0.8.0-beta.1 — Modèles réutilisables
 
-- Identité 2A : nébuleuse et angles de capture, SVG couleur pour le lanceur/en-tête et symbolique pour le panneau.
-- Aperçu des SVG à 16, 24 et 32 px sur fonds clair et sombre ; thème de l’interface conservé.
-- Roadmap 0.8–1.0 et règles de design FR/EN. Modèles réutilisables non encore implémentés ; aucune migration ni augmentation de version du binaire dans ce changement.
+- Nouvelle section **Modèles** dans le popup et la fenêtre complète : créer, modifier, rechercher, classer et supprimer avec confirmation.
+- Création depuis une copie texte ; modèles conservés séparément de l’historique, hors rétention et vidage.
+- Champs `{{nom}}`, `{{date}}`, `{{serveur}}`, `{{ip}}` ou noms personnalisés : remplir une fois, vérifier l’aperçu, puis copier le résultat. La date est saisie manuellement.
+- Import/export JSON avec sélecteur de fichiers système, aperçu et choix explicite en cas de conflit. Export vers un **nouveau fichier** ; aucun écrasement d’export existant.
+- Identité 2A et interface française/anglaise suivant le thème COSMIC.
+
+Bêta : les tests automatisés et rendus ne remplacent pas les essais dans ta session Fedora COSMIC. [Guide de test 0.8](docs/TESTING-0.8.md) · [Roadmap](docs/ROADMAP.md).
 
 ## 0.7.0-beta.1 — Recherche et collections
 

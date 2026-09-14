@@ -4,27 +4,21 @@
 
 A local **Rust/libcosmic clipboard manager** for Fedora COSMIC: text, images, links, colors, code and file references. An independent project, not affiliated with Supaste or System76.
 
-## In preparation — 0.8
+## 0.8.0-beta.1 — Reusable templates
 
-The **2A · Dust Capture** identity is integrated: [SVG preview](docs/identity-2a.svg) and [design principles](docs/DESIGN-2A.en.md). The interface retains the COSMIC theme.
+- New **Templates** section in the popup and full window: create, edit, search, file and confirm deletion.
+- Create from a text clip; templates are stored separately from history and survive retention and clearing.
+- `{{name}}`, `{{date}}`, `{{server}}`, `{{ip}}` or custom fields: fill once, inspect the preview, then copy the result. Date is entered manually.
+- JSON import/export with the system file chooser, preview and explicit conflict policy. Export to a **new file**; existing exports are never overwritten.
+- 2A identity and French/English interface following the COSMIC theme.
 
-The [0.8 → 1.0 roadmap](docs/ROADMAP.en.md) defines reusable templates and validation criteria. Templates are **planned, not available yet**. The binary remains 0.7.0-beta.1. This design branch builds on the 0.7 beta; the instructions below install that beta, without the new artwork on `v0.8-identity-roadmap`.
-
-## 0.7.0-beta.1 — Search and collections
-
-- Search image text using embedded local OCR, enabled explicitly in Preferences.
-- Persistent collections: create, rename, delete and file clips by internal drag and drop. Deleting a collection keeps its clips.
-- History sidebar at widths of 720 logical units or more; the panel popup supports compact and expanded modes.
-- French/English UI, COSMIC theme, favorites, retention, deletion undo and manual OCR extraction retained.
-- Fedora RPM build with vendored Rust dependencies and offline compilation inside rpmbuild.
-
-This is a **beta requiring live COSMIC desktop testing**. [0.7 test guide](docs/TESTING-0.7.en.md) · [RPM build/install](packaging/README.md). Older screenshots in `docs/` depict 0.5.
+Beta: automated tests and renders do not replace live Fedora COSMIC testing. [0.8 testing guide](docs/TESTING-0.8.en.md) · [Roadmap](docs/ROADMAP.en.md).
 
 ## Build and install
 
 ```bash
 sudo dnf install git rust cargo gcc gcc-c++ cmake make pkgconf-pkg-config libxkbcommon-devel wayland-devel fontconfig-devel freetype-devel
-git clone --branch v0.7-search-collections https://github.com/nabz54/nebula-paste.git
+git clone --branch main https://github.com/nabz54/nebula-paste.git
 cd nebula-paste
 bash scripts/install.sh
 ```

@@ -59,6 +59,8 @@ pub struct App {
     clips: Vec<Clip>,
     collections: Vec<String>,
     collections_open: bool,
+    templates_open: bool,
+    templates: crate::template_ui::State,
     collection_target: Option<String>,
     collection_name: String,
     collection_delete: Option<String>,
@@ -81,6 +83,7 @@ pub struct App {
     connected: bool,
     clear_confirm: bool,
     copying: bool,
+    template_copy: bool,
     search_id: iced::widget::Id,
     ocr_busy: bool,
     dragging: bool,
@@ -109,6 +112,9 @@ struct Undo {
 pub enum Message {
     Toggle,
     ReloadAppearance,
+    Templates(bool),
+    Template(crate::template_ui::Message),
+    TemplateFromClip(String),
     TogglePopupSize,
     Collections(bool),
     EditCollection(Option<String>),
@@ -1122,6 +1128,8 @@ impl cosmic::Application for App {
             clips: vec![],
             collections: vec![],
             collections_open: false,
+            templates_open: false,
+            templates: crate::template_ui::State::default(),
             collection_target: None,
             collection_name: String::new(),
             collection_delete: None,
@@ -1144,6 +1152,7 @@ impl cosmic::Application for App {
             connected: false,
             clear_confirm: false,
             copying: false,
+            template_copy: false,
             search_id: iced::widget::Id::unique(),
             ocr_busy: false,
             dragging: false,
@@ -1163,6 +1172,16 @@ impl cosmic::Application for App {
                 let _ = store.pin(&clip.id, clip.pinned);
                 let _ = store.category(&clip.id, &clip.category);
             }
+        }
+        if demo && let Some(store) = &app.store {
+            let _ = store.save_template(None, tr!("Réponse de suivi", "Follow-up reply"), tr!("Bonjour {{nom}},\n\nLe serveur {{serveur}} sera disponible le {{date}}.\nMerci !", "Hello {{name}},\n\nServer {{server}} will be available on {{date}}.\nThank you!"), tr!("Travail", "Work"));
+            let _ = store.save_template(
+                None,
+                tr!("Adresse de test", "Test address"),
+                "192.0.2.10",
+                "",
+            );
+            app.templates.refresh(store);
         }
         app.refresh();
         (app, Task::none())
@@ -1299,6 +1318,20 @@ impl cosmic::Application for App {
                     .spacing(8),
             );
         }
+        layout = layout.push(
+            widget::row([])
+                .spacing(8)
+                .push(
+                    widget::button::text(tr!("Copies", "Clips"))
+                        .class(skin::button(!self.templates_open, 8.0, false))
+                        .on_press(Message::Templates(false)),
+                )
+                .push(
+                    widget::button::text(tr!("Modèles", "Templates"))
+                        .class(skin::button(self.templates_open, 8.0, false))
+                        .on_press(Message::Templates(true)),
+                ),
+        );
         if paused {
             layout = layout.push(
                 widget::container(
@@ -1373,7 +1406,14 @@ impl cosmic::Application for App {
         if self.collections_open {
             layout = layout.push(self.view_collections());
         }
-        if !self.settings_open && !self.collections_open {
+        if self.templates_open {
+            layout = layout.push(
+                self.templates
+                    .view(&self.collections, compact)
+                    .map(Message::Template),
+            );
+        }
+        if !self.settings_open && !self.collections_open && !self.templates_open {
             if let Some(clip) = self
                 .detail
                 .as_ref()
@@ -1458,6 +1498,12 @@ impl cosmic::Application for App {
                             .spacing(8)
                             .align_x(iced::Alignment::Start),
                     );
+                if !matches!(clip.kind, Kind::Image | Kind::Files) {
+                    layout = layout.push(
+                        widget::button::text(tr!("Créer un modèle", "Create template"))
+                            .on_press(Message::TemplateFromClip(clip.id.clone())),
+                    );
+                }
                 if clip.kind == Kind::Image {
                     if let Some(text) = self.image_index.get(&clip.id) {
                         layout = layout
@@ -1921,7 +1967,120 @@ impl cosmic::Application for App {
         Subscription::batch(subscriptions)
     }
     fn update(&mut self, message: Message) -> Task<cosmic::Action<Message>> {
+        if self.templates_open
+            && matches!(
+                message,
+                Message::Enter
+                    | Message::Choose(_)
+                    | Message::PlainSelected
+                    | Message::Move(_)
+                    | Message::MoveRow(_)
+            )
+        {
+            return Task::none();
+        }
         match message {
+            Message::Templates(open) => {
+                self.templates_open = open;
+                self.settings_open = false;
+                self.collections_open = false;
+                self.detail = None;
+                if !open {
+                    self.templates.clear_values();
+                }
+                if let Some(store) = &self.store {
+                    self.templates.refresh(store);
+                }
+            }
+            Message::TemplateFromClip(id) => {
+                if let Some(c) = self
+                    .clips
+                    .iter()
+                    .find(|c| c.id == id && !matches!(c.kind, Kind::Image | Kind::Files))
+                {
+                    self.templates.from_clip(&c.title, &c.text, &c.category);
+                    self.templates_open = true;
+                    self.detail = None;
+                    if let Some(store) = &self.store {
+                        self.templates.refresh(store);
+                    }
+                }
+            }
+            Message::Template(msg) => {
+                if self.demo
+                    && matches!(
+                        msg,
+                        crate::template_ui::Message::Import
+                            | crate::template_ui::Message::Export
+                            | crate::template_ui::Message::Copy
+                    )
+                {
+                    self.templates.note = tr!(
+                        "Démonstration : transfert désactivé",
+                        "Demo: transfer disabled"
+                    )
+                    .into();
+                    return Task::none();
+                }
+                let Some(store) = &self.store else {
+                    self.templates.note =
+                        tr!("Stockage indisponible", "Storage unavailable").into();
+                    return Task::none();
+                };
+                let changed = matches!(
+                    msg,
+                    crate::template_ui::Message::Save
+                        | crate::template_ui::Message::Delete
+                        | crate::template_ui::Message::ApplyImport
+                );
+                match self.templates.update(msg, store) {
+                    Err(e) => self.templates.note = e,
+                    Ok(crate::template_ui::Effect::None) => {
+                        if changed {
+                            self.refresh();
+                        }
+                    }
+                    Ok(crate::template_ui::Effect::Copy(text)) => {
+                        if self.copying {
+                            return Task::none();
+                        }
+                        match Clip::new(
+                            "text/plain;charset=utf-8".into(),
+                            text.into_bytes(),
+                            model::now(),
+                        ) {
+                            Err(e) => self.templates.note = e,
+                            Ok(clip) => {
+                                self.template_copy = true;
+                                self.copying = true;
+                                return Task::perform(
+                                    async move {
+                                        tokio::task::spawn_blocking(move || clipboard::copy(clip))
+                                            .await
+                                            .map_err(|e| e.to_string())
+                                            .and_then(|r| r)
+                                    },
+                                    |r| cosmic::Action::App(Message::Copied(r)),
+                                );
+                            }
+                        }
+                    }
+                    Ok(crate::template_ui::Effect::Import) => {
+                        return Task::perform(crate::template_ui::import_file(), |r| {
+                            cosmic::Action::App(Message::Template(
+                                crate::template_ui::Message::Imported(r),
+                            ))
+                        });
+                    }
+                    Ok(crate::template_ui::Effect::Export(a)) => {
+                        return Task::perform(crate::template_ui::export_file(a), |r| {
+                            cosmic::Action::App(Message::Template(
+                                crate::template_ui::Message::Exported(r),
+                            ))
+                        });
+                    }
+                }
+            }
             Message::ReloadAppearance => {
                 self.application_theme = cosmic::theme::system_preference();
             }
@@ -1959,6 +2118,8 @@ impl cosmic::Application for App {
                     .chain(widget::text_input::focus(self.search_id.clone()));
             }
             Message::Collections(open) => {
+                self.templates_open = false;
+                self.templates.clear_values();
                 self.collections_open = open;
                 self.settings_open = false;
                 self.collection_delete = None;
@@ -2076,12 +2237,22 @@ impl cosmic::Application for App {
                 }
             }
             Message::FocusSearch => {
+                if self.templates_open {
+                    return widget::text_input::focus(self.templates.search_id.clone());
+                }
                 self.detail = None;
                 self.collections_open = false;
                 self.settings_open = false;
                 return widget::text_input::focus(self.search_id.clone());
             }
             Message::Escape => {
+                if self.templates_open {
+                    if self.templates.at_root() {
+                        self.templates_open = false;
+                        return Task::none();
+                    }
+                    return self.update(Message::Template(crate::template_ui::Message::Back));
+                }
                 if self.collection_delete.is_some() {
                     self.collection_delete = None;
                 } else if self.collections_open {
@@ -2161,6 +2332,8 @@ impl cosmic::Application for App {
                 ));
             }
             Message::Settings(open) => {
+                self.templates_open = false;
+                self.templates.clear_values();
                 self.settings_open = open;
                 self.collections_open = false;
                 self.pause_menu = false;
@@ -2306,6 +2479,7 @@ impl cosmic::Application for App {
                 }
             }
             Message::CloseView => {
+                self.templates.clear_values();
                 if self.demo {
                     return iced::exit();
                 }
@@ -2320,6 +2494,7 @@ impl cosmic::Application for App {
                     return iced::exit();
                 }
                 if let Some(id) = self.popup.take() {
+                    self.templates.clear_values();
                     self.dragging = false;
                     return destroy_popup(id);
                 }
@@ -2357,6 +2532,7 @@ impl cosmic::Application for App {
                     .chain(widget::text_input::focus(self.search_id.clone()));
             }
             Message::Closed(id) => {
+                self.templates.clear_values();
                 if self.history == Some(id) {
                     self.history = None;
                     self.dragging = false;
@@ -2443,6 +2619,8 @@ impl cosmic::Application for App {
                 self.reset();
             }
             Message::Favorites(favorites) => {
+                self.templates_open = false;
+                self.templates.clear_values();
                 self.collections_open = false;
                 self.settings_open = false;
                 self.favorites = favorites;
@@ -2450,6 +2628,8 @@ impl cosmic::Application for App {
                 self.reset();
             }
             Message::Category(category) => {
+                self.templates_open = false;
+                self.templates.clear_values();
                 self.collections_open = false;
                 self.settings_open = false;
                 self.category = category;
@@ -2479,11 +2659,14 @@ impl cosmic::Application for App {
                 }
                 Err(e) => {
                     self.copying = false;
+                    self.template_copy = false;
                     self.status = tr_format!("Échec de la copie : {e}", "Copy failed: {e}");
                 }
             },
             Message::FinishCopy => {
-                if self.settings.keep_open && self.settings.paste_mode == 0 {
+                self.templates.clear_values();
+                let template_copy = std::mem::take(&mut self.template_copy);
+                if self.settings.keep_open && (self.settings.paste_mode == 0 || template_copy) {
                     self.copying = false;
                     return Task::none();
                 }
@@ -2492,7 +2675,7 @@ impl cosmic::Application for App {
                 } else {
                     self.popup.take().map_or_else(Task::none, destroy_popup)
                 };
-                if self.settings.paste_mode != 0 {
+                if self.settings.paste_mode != 0 && !template_copy {
                     let terminal = self.settings.paste_mode == 2;
                     return close.chain(Task::perform(
                         async move {

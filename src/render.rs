@@ -58,6 +58,7 @@ pub fn preview(path: &str) -> Result<(), Box<dyn std::error::Error>> {
     } else {
         cosmic::Theme::dark()
     };
+    app.render_theme(theme.clone());
     let mut view = if popup {
         app.view_window(iced::window::Id::unique())
     } else {

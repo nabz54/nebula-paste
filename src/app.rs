@@ -179,6 +179,9 @@ pub enum Message {
 }
 
 impl App {
+    pub(crate) fn render_theme(&mut self, theme: cosmic::Theme) {
+        self.application_theme = theme;
+    }
     pub(crate) fn render_popup(&mut self) {
         self.demo = false;
         self.viewport = WIDTH_POPUP;
@@ -271,7 +274,11 @@ impl App {
         let target = name.to_owned();
         let button = widget::button::text(name)
             .class(skin::button(self.category == name, 8.0, false))
-            .on_press(Message::Category(name.into()));
+            .on_press(if self.templates_open {
+                Message::Template(crate::template_ui::Message::Filter(name.into()))
+            } else {
+                Message::Category(name.into())
+            });
         widget::DndDestination::new(button, vec![crate::transfer::CLIP_ID_MIME.into()])
             .action(iced::clipboard::dnd::DndAction::Copy)
             .preferred_action(iced::clipboard::dnd::DndAction::Copy)
@@ -1358,7 +1365,7 @@ impl cosmic::Application for App {
                         )
                         .push(widget::Space::new().width(Length::Fill))
                         .push(
-                            widget::button::text(tr!("Reprendre maintenant", "Resume now"))
+                            widget::button::text(tr!("Reprendre", "Resume"))
                                 .class(skin::button(true, 7.0, false))
                                 .on_press(Message::Resume),
                         )

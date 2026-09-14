@@ -307,8 +307,14 @@ impl State {
                 })
                 .collect();
             if !choices.is_empty() {
-                body =
-                    body.push(widget::scrollable(widget::flex_row(choices).spacing(4)).height(65));
+                body = body.push(
+                    widget::scrollable(
+                        widget::flex_row(choices)
+                            .spacing(4)
+                            .justify_items(cosmic::iced::Alignment::Start),
+                    )
+                    .height(65),
+                );
             }
             body=body.push(widget::text(tr!("Champs : {{nom}}, {{date}}, {{serveur}}… Doubles accolades réservées aux champs.","Fields: {{name}}, {{date}}, {{server}}… Double braces are reserved for fields.")).size(12))
                 .push(widget::TextEditor::new(&e.body).height(if compact {150}else{230}).on_action(Message::Body));
@@ -447,7 +453,14 @@ impl State {
                         .into(),
                 );
             }
-            body = body.push(widget::scrollable(widget::flex_row(filters).spacing(4)).height(65));
+            body = body.push(
+                widget::scrollable(
+                    widget::flex_row(filters)
+                        .spacing(4)
+                        .justify_items(cosmic::iced::Alignment::Start),
+                )
+                .height(65),
+            );
             let mut list = widget::column([]).spacing(8);
             let mut count = 0;
             for t in self
@@ -550,11 +563,14 @@ pub async fn import_file() -> Result<Option<Archive>, String> {
 pub async fn export_file(archive: Archive) -> Result<bool, String> {
     use cosmic::dialog::file_chooser;
     let response = match file_chooser::save::Dialog::new()
-        .title(tr!(
-            "Exporter les modèles vers un nouveau fichier",
-            "Export templates to a new file"
-        ))
-        .file_name("nebula-paste-templates.json")
+        .title(
+            tr!(
+                "Exporter les modèles vers un nouveau fichier",
+                "Export templates to a new file"
+            )
+            .to_string(),
+        )
+        .file_name("nebula-paste-templates.json".into())
         .save_file()
         .await
     {

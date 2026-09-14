@@ -2,11 +2,15 @@
 
 [Français](CHANGELOG.fr.md)
 
-## Unreleased — 0.8 preparation
+## 0.8.0-beta.1 — Reusable templates
 
-- 2A identity: nebula with capture corners; color launcher/header SVG and symbolic panel SVG.
-- SVG proof sheet at 16, 24 and 32 px on light/dark backgrounds; system interface theme retained.
-- FR/EN 0.8–1.0 roadmap and design rules. Reusable templates are not implemented yet; this change includes no data migration or binary version bump.
+- New **Templates** section in the popup and full window: create, edit, search, file and confirm deletion.
+- Create from a text clip; templates are stored separately from history and survive retention and clearing.
+- `{{name}}`, `{{date}}`, `{{server}}`, `{{ip}}` or custom fields: fill once, inspect the preview, then copy the result. Date is entered manually.
+- JSON import/export with the system file chooser, preview and explicit conflict policy. Export to a **new file**; existing exports are never overwritten.
+- 2A identity and French/English interface following the COSMIC theme.
+
+Beta: automated tests and renders do not replace live Fedora COSMIC testing. [0.8 testing guide](docs/TESTING-0.8.en.md) · [Roadmap](docs/ROADMAP.en.md).
 
 ## 0.7.0-beta.1 — Search and collections
 

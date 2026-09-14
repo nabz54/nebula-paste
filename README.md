@@ -4,27 +4,21 @@
 
 Un gestionnaire de presse-papiers local en **Rust/libcosmic** pour Fedora COSMIC : textes, images, liens, couleurs, code et références de fichiers. Projet indépendant, sans affiliation à Supaste ou System76.
 
-## En préparation — 0.8
+## 0.8.0-beta.1 — Modèles réutilisables
 
-L’identité **2A · Capture cosmique** est intégrée : [aperçu SVG](docs/identity-2a.svg) et [principes de design](docs/DESIGN-2A.md). L’interface conserve le thème COSMIC.
+- Nouvelle section **Modèles** dans le popup et la fenêtre complète : créer, modifier, rechercher, classer et supprimer avec confirmation.
+- Création depuis une copie texte ; modèles conservés séparément de l’historique, hors rétention et vidage.
+- Champs `{{nom}}`, `{{date}}`, `{{serveur}}`, `{{ip}}` ou noms personnalisés : remplir une fois, vérifier l’aperçu, puis copier le résultat. La date est saisie manuellement.
+- Import/export JSON avec sélecteur de fichiers système, aperçu et choix explicite en cas de conflit. Export vers un **nouveau fichier** ; aucun écrasement d’export existant.
+- Identité 2A et interface française/anglaise suivant le thème COSMIC.
 
-La [roadmap 0.8 → 1.0](docs/ROADMAP.md) détaille les modèles réutilisables et les critères de validation. Les modèles sont **prévus, pas encore disponibles**. Le binaire reste en 0.7.0-beta.1. Cette branche de design se base sur la bêta 0.7 ; les instructions ci-dessous installent cette bêta, sans les nouveaux assets de la branche `v0.8-identity-roadmap`.
-
-## 0.7.0-beta.1 — Recherche et collections
-
-- Recherche dans le texte des images grâce à l’OCR local embarqué, à activer dans les préférences.
-- Collections persistantes : créer, renommer, supprimer, classer une copie par glisser-déposer interne. Supprimer une collection conserve ses copies.
-- Barre latérale dans la fenêtre d’historique à partir de 720 unités logiques ; popup du panneau compact ou élargi.
-- Interface française et anglaise, thème COSMIC, favoris, rétention, annulation de suppression et extraction OCR manuelle conservés.
-- Construction d’un paquet RPM Fedora avec dépendances Rust vendues et compilation hors ligne dans rpmbuild.
-
-Cette version est une **bêta à tester sur le bureau COSMIC**. [Guide de test 0.7](docs/TESTING-0.7.md) · [Construction et installation RPM](packaging/README.md). Les anciennes captures dans `docs/` représentent la 0.5.
+Bêta : les tests automatisés et rendus ne remplacent pas les essais dans ta session Fedora COSMIC. [Guide de test 0.8](docs/TESTING-0.8.md) · [Roadmap](docs/ROADMAP.md).
 
 ## Installer depuis les sources
 
 ```bash
 sudo dnf install git rust cargo gcc gcc-c++ cmake make pkgconf-pkg-config libxkbcommon-devel wayland-devel fontconfig-devel freetype-devel
-git clone --branch v0.7-search-collections https://github.com/nabz54/nebula-paste.git
+git clone --branch main https://github.com/nabz54/nebula-paste.git
 cd nebula-paste
 bash scripts/install.sh
 ```

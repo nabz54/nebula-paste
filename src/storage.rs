@@ -11,7 +11,7 @@ use std::{
 };
 
 pub struct Store {
-    connection: Connection,
+    pub(crate) connection: Connection,
 }
 
 impl Store {
@@ -50,6 +50,7 @@ impl Store {
             );",
             )
             .map_err(|e| e.to_string())?;
+        crate::templates::initialize(&connection)?;
         Ok(Self { connection })
     }
     pub fn load(&self) -> Result<Vec<Clip>, String> {
@@ -189,6 +190,11 @@ impl Store {
             params![name, old],
         )
         .map_err(|e| e.to_string())?;
+        tx.execute(
+            "UPDATE templates SET collection=?1 WHERE collection=?2",
+            params![name, old],
+        )
+        .map_err(|e| e.to_string())?;
         tx.commit().map_err(|e| e.to_string())
     }
     /// Deleting a collection only unfiles its clips, including favorites.
@@ -199,6 +205,11 @@ impl Store {
             .map_err(|e| e.to_string())?;
         tx.execute("UPDATE clips SET category='' WHERE category=?1", [name])
             .map_err(|e| e.to_string())?;
+        tx.execute(
+            "UPDATE templates SET collection='' WHERE collection=?1",
+            [name],
+        )
+        .map_err(|e| e.to_string())?;
         tx.execute("DELETE FROM collections WHERE name=?1", [name])
             .map_err(|e| e.to_string())?;
         tx.commit().map_err(|e| e.to_string())

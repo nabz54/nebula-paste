@@ -6,9 +6,9 @@ These are targets, not shipped features or promised dates. Version 0.7 remains a
 
 ## 0.8 — Identity and reusable templates
 
-**Prepared on this branch:** color and symbolic 2A identity, native-size SVG proof sheet, theme rules and the scope below. The binary remains 0.7.0-beta.1; templates are not implemented yet.
+**Implemented in 0.8.0-beta.1:** 2A identity, persistent templates, editing, literal fields, search and import/export with conflict handling. Live Fedora COSMIC validation remains required before a stable release.
 
-**Implementation order:**
+**Delivered features:**
 
 1. Template storage separate from clipboard history: stable ID, title, body, optional collection, creation/update timestamps. Additive migration; history retention and clearing must never delete templates.
 2. Templates view in popup and full window: create, edit, search title/body, file, confirm deletion. Create from a text clip without changing the original.

@@ -37,7 +37,19 @@ pub fn preview(path: &str) -> Result<(), Box<dyn std::error::Error>> {
     if std::env::args().nth(3).as_deref() == Some("collections") {
         let _ = app.update(crate::app::Message::Collections(true));
     }
-    let popup = std::env::args().nth(3).as_deref() == Some("popup");
+    let mode = std::env::args().nth(3).unwrap_or_default();
+    if mode.starts_with("templates") {
+        let _ = app.update(crate::app::Message::Templates(true));
+        if mode.contains("edit") {
+            let _ = app.update(crate::app::Message::Template(
+                crate::template_ui::Message::New,
+            ));
+            let _ = app.update(crate::app::Message::Template(
+                crate::template_ui::Message::Title("Réponse de suivi / Follow-up".into()),
+            ));
+        }
+    }
+    let popup = mode == "popup" || mode.contains("popup");
     if popup {
         app.render_popup();
     }
@@ -46,6 +58,7 @@ pub fn preview(path: &str) -> Result<(), Box<dyn std::error::Error>> {
     } else {
         cosmic::Theme::dark()
     };
+    app.render_theme(theme.clone());
     let mut view = if popup {
         app.view_window(iced::window::Id::unique())
     } else {

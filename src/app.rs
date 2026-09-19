@@ -1884,8 +1884,7 @@ impl cosmic::Application for App {
             self.core
                 .applet
                 .popup_container(
-                    widget::container(widget::scrollable(content).height(Length::Shrink))
-                        .class(skin::popup_surface()),
+                    widget::container(widget::scrollable(content).height(Length::Shrink)),
                 )
                 .limits(
                     Limits::NONE
@@ -1898,7 +1897,11 @@ impl cosmic::Application for App {
         if self.demo {
             view
         } else {
-            iced::widget::themer(Some(self.application_theme.clone()), view)
+            // Preserve the compositor-controlled transparency capability while
+            // using the independently watched application palette.
+            let mut theme = self.application_theme.clone();
+            theme.transparent = cosmic::theme::active().transparent;
+            iced::widget::themer(Some(theme), view)
                 .text_color(|theme| theme.cosmic().on_bg_color().into())
                 .into()
         }

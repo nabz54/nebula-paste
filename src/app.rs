@@ -184,7 +184,12 @@ impl App {
     /// Register popups with libcosmic so native blur, corners and theme updates
     /// are applied, just as for the COSMIC calendar. Raw iced popup creation
     /// bypasses this registration and leaves the translucent background sharp.
-    fn open_popup(&self, parent: Id, id: Id, size: Option<(u32, u32)>) -> cosmic::app::Task<Message> {
+    fn open_popup(
+        &self,
+        parent: Id,
+        id: Id,
+        size: Option<(u32, u32)>,
+    ) -> cosmic::app::Task<Message> {
         let width = self.ideal_width();
         cosmic::surface::surface_task(cosmic::surface::action::app_popup(
             |_| Default::default(),

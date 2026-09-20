@@ -1,5 +1,8 @@
 # Nebula Paste — COSMIC applet
 
+**0.9 beta:** history backup/restore, content-free diagnostics and COSMIC reliability. [Testing guide](docs/TESTING-0.9.en.md).
+
+
 [Français](README.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
 
 A local **Rust/libcosmic clipboard manager** for Fedora COSMIC: text, images, links, colors, code and file references. An independent project, not affiliated with Supaste or System76.

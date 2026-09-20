@@ -181,6 +181,26 @@ pub enum Message {
 }
 
 impl App {
+    pub(crate) fn prepare_data_preview(&mut self) {
+        if self.demo {
+            self.data.pending = self
+                .store
+                .as_ref()
+                .and_then(|s| s.history_archive().ok())
+                .and_then(|a| a.validate().ok())
+                .map(std::sync::Arc::new);
+        }
+    }
+    pub(crate) fn render_data_panel(&self, narrow: bool) -> Element<'_, Message> {
+        widget::container(
+            self.data
+                .view(&self.clips.iter().map(|c| c.id.clone()).collect())
+                .map(Message::Data),
+        )
+        .width(if narrow { 360.0 } else { 700.0 })
+        .class(cosmic::theme::Container::WindowBackground)
+        .into()
+    }
     pub(crate) fn render_theme(&mut self, theme: cosmic::Theme) {
         self.application_theme = theme;
     }
@@ -3286,5 +3306,59 @@ mod tests {
         assert!(!app.settings.popup_expanded);
         assert_eq!(app.width(), WIDTH_POPUP);
         assert_eq!(app.page_size(), 5);
+    }
+    #[test]
+    fn preferences_shortcuts_do_not_copy_and_escape_cancels_restore() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        let _ = app.update(Message::Settings(true));
+        let status = app.status.clone();
+        for m in [Message::Enter, Message::Choose(0), Message::PlainSelected] {
+            let _ = app.update(m);
+        }
+        assert_eq!(app.status, status);
+        app.data.pending = Some(std::sync::Arc::new(
+            app.store
+                .as_ref()
+                .unwrap()
+                .history_archive()
+                .unwrap()
+                .validate()
+                .unwrap(),
+        ));
+        let _ = app.update(Message::Escape);
+        assert!(app.data.pending.is_none());
+        assert!(app.settings_open);
+    }
+    #[test]
+    fn restore_disables_retention_persistently_before_refresh() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        let mut source = Store::in_memory().unwrap();
+        let c = Clip::new("text/plain".into(), b"old restored entry".to_vec(), 1).unwrap();
+        source.insert(&c).unwrap();
+        app.data.pending = Some(std::sync::Arc::new(
+            source.history_archive().unwrap().validate().unwrap(),
+        ));
+        app.data.policy = Some(nebula_paste::backup::Conflict::KeepLocal);
+        let d = tempfile::tempdir().unwrap();
+        let p = d.path().join("settings.conf");
+        app.settings_path = Some(p.clone());
+        app.settings.retention_days = 1;
+        app.demo = false;
+        let _ = app.update(Message::Data(crate::data_ui::Message::Confirm));
+        assert!(app.clips.iter().any(|clip| clip.id == c.id));
+        assert_eq!(Settings::load(&p).retention_days, 0);
+        assert!(app.data.pending.is_none());
+    }
+    #[test]
+    fn separate_history_uses_available_width_in_compact_density() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        app.demo = false;
+        app.history = Some(Id::unique());
+        app.settings.density = Density::Compact;
+        let _ = app.update(Message::WindowResized(app.history.unwrap(), 1200.0));
+        assert_eq!(app.width(), 1200.0);
+        let _ = app.update(Message::WindowResized(app.history.unwrap(), 520.0));
+        assert_eq!(app.width(), 520.0);
+        assert_eq!(app.sidebar_width(), 0.0);
     }
 }

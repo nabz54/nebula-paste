@@ -20,6 +20,8 @@ These are targets, not shipped features or promised dates. Version 0.7 remains a
 
 ## 0.9 — Reliability and data control
 
+**Implemented in the 0.9 beta branch:** backup/restore, diagnostics, retention impact, transparency, resizing, keyboard isolation and reproducible measurements. Live COSMIC acceptance remains pending.
+
 **Proposed:** strengthen placement, resizing, keyboard focus and theme changes; measure search and OCR with a full history; history backup/restore with preview and conflict handling; clarify retention controls; diagnostic exports excluding clip and template contents.
 
 **Exit criteria:** interrupted/invalid restore tests, favorites and collections preserved, reproducible measurements, documented Fedora/COSMIC matrix, no known blocker on main workflows.

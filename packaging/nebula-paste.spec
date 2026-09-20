@@ -1,8 +1,8 @@
-%global crate_version 0.8.0-beta.1
+%global crate_version 0.9.0-beta.1
 %global debug_package %{nil}
 
 Name:           nebula-paste
-Version:        0.8.0~beta.1
+Version:        0.9.0~beta.1
 Release:        1%{?dist}
 Summary:        Local clipboard history applet for COSMIC
 License:        MPL-2.0 AND Apache-2.0 AND BSD-2-Clause AND MIT
@@ -59,6 +59,9 @@ bash scripts/check-embedded-ocr.sh target/release/nebula-paste
 %{_datadir}/icons/hicolor/scalable/apps/io.github.nebulapaste.NebulaPaste-symbolic.svg
 
 %changelog
+* Sun Sep 20 2026 Nebula Paste contributors - 0.9.0~beta.1-1
+- History backup/restore, diagnostics and COSMIC reliability
+
 * Mon Sep 14 2026 Nebula Paste contributors - 0.8.0~beta.1-1
 - Reusable templates, literal fields and transactional JSON import/export.
 

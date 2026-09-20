@@ -49,6 +49,9 @@ pub fn preview(path: &str) -> Result<(), Box<dyn std::error::Error>> {
             ));
         }
     }
+    if mode.starts_with("data") {
+        app.prepare_data_preview();
+    }
     let popup = mode == "popup" || mode.contains("popup");
     if popup {
         app.render_popup();
@@ -59,7 +62,9 @@ pub fn preview(path: &str) -> Result<(), Box<dyn std::error::Error>> {
         cosmic::Theme::dark()
     };
     app.render_theme(theme.clone());
-    let mut view = if popup {
+    let mut view = if mode.starts_with("data") {
+        app.render_data_panel(popup)
+    } else if popup {
         app.view_window(iced::window::Id::unique())
     } else {
         app.view()

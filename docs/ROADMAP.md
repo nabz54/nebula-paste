@@ -20,6 +20,8 @@ Les versions ci-dessous sont des objectifs, pas des fonctionnalités déjà livr
 
 ## 0.9 — Fiabilité et maîtrise des données
 
+**Implémenté dans la branche 0.9 bêta :** sauvegarde/restauration, diagnostic, impact de rétention, transparence, redimensionnement, isolation clavier et mesures reproductibles. Les critères de validation COSMIC réelle restent à vérifier.
+
 **Proposé :** consolider placement, redimensionnement, focus clavier et changements de thème ; mesurer la recherche et l’OCR sur un historique rempli ; sauvegarder/restaurer l’historique avec aperçu et gestion des conflits ; clarifier les réglages de rétention ; exporter un diagnostic excluant le contenu des copies et des modèles.
 
 **Critères de sortie :** tests de restauration interrompue ou invalide, conservation des favoris et collections, mesures reproductibles, matrice Fedora/COSMIC documentée, aucun blocage connu sur les parcours principaux.

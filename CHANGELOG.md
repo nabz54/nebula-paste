@@ -2,6 +2,10 @@
 
 [Français](CHANGELOG.fr.md)
 
+## 0.9.0-beta.1 — Reliability and data control
+
+History backup/restore with explicit conflicts and transactional rollback; private diagnostics without content; retention impact preview; native COSMIC transparency, full-width history resizing and isolated keyboard shortcuts. Reproducible search/OCR benchmarks. Live COSMIC testing remains pending. [Testing guide](docs/TESTING-0.9.en.md).
+
 ## 0.8.0-beta.1 — Reusable templates
 
 - New **Templates** section in the popup and full window: create, edit, search, file and confirm deletion.

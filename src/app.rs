@@ -3,7 +3,7 @@ use cosmic::{
     iced::{
         self, Color, Length, Limits, Subscription,
         keyboard::{self, Key, key::Named},
-        platform_specific::shell::wayland::commands::popup::{destroy_popup, get_popup},
+        platform_specific::shell::wayland::commands::popup::destroy_popup,
         window::Id,
     },
     prelude::*,
@@ -181,6 +181,31 @@ pub enum Message {
 }
 
 impl App {
+    /// Register popups with libcosmic so native blur, corners and theme updates
+    /// are applied, just as for the COSMIC calendar. Raw iced popup creation
+    /// bypasses this registration and leaves the translucent background sharp.
+    fn open_popup(&self, parent: Id, id: Id, size: Option<(u32, u32)>) -> cosmic::app::Task<Message> {
+        let width = self.ideal_width();
+        cosmic::surface::surface_task(cosmic::surface::action::app_popup(
+            |_| Default::default(),
+            move |app: &mut Self| {
+                let mut settings = app
+                    .core
+                    .applet
+                    .get_popup_settings(parent, id, size, None, None);
+                // Slide, flip and resize on either axis when constrained by the output.
+                settings.positioner.constraint_adjustment = 63;
+                settings.positioner.size_limits = Limits::NONE
+                    .min_width(WIDTH_MIN)
+                    .max_width(width)
+                    .min_height(200.0)
+                    .max_height(900.0);
+                settings
+            },
+            None,
+        ))
+    }
+
     pub(crate) fn prepare_data_preview(&mut self) {
         if self.demo {
             self.data.pending = self
@@ -2230,22 +2255,8 @@ impl cosmic::Application for App {
                 let close = self.popup.take().map_or_else(Task::none, destroy_popup);
                 let id = Id::unique();
                 self.popup = Some(id);
-                let mut settings = self.core.applet.get_popup_settings(
-                    parent,
-                    id,
-                    Some((self.ideal_width() as u32, 600)),
-                    None,
-                    None,
-                );
-                // Slide, flip and resize on either axis when constrained by the output.
-                settings.positioner.constraint_adjustment = 63;
-                settings.positioner.size_limits = Limits::NONE
-                    .min_width(WIDTH_MIN)
-                    .max_width(self.ideal_width())
-                    .min_height(200.0)
-                    .max_height(900.0);
                 return close
-                    .chain(get_popup(settings))
+                    .chain(self.open_popup(parent, id, Some((self.ideal_width() as u32, 600))))
                     .chain(widget::text_input::focus(self.search_id.clone()));
             }
             Message::Collections(open) => {
@@ -2653,19 +2664,8 @@ impl cosmic::Application for App {
                 self.clear_confirm = false;
                 self.settings_open = false;
                 self.pause_menu = false;
-                let mut settings = self
-                    .core
-                    .applet
-                    .get_popup_settings(parent, id, None, None, None);
-                // Slide, flip and resize on either axis when constrained by the output.
-                settings.positioner.constraint_adjustment = 63;
-                settings.positioner.size_limits = Limits::NONE
-                    .min_width(WIDTH_MIN)
-                    .max_width(self.ideal_width())
-                    .min_height(200.0)
-                    .max_height(900.0);
                 return close_history
-                    .chain(get_popup(settings))
+                    .chain(self.open_popup(parent, id, None))
                     .chain(widget::text_input::focus(self.search_id.clone()));
             }
             Message::Closed(id) => {

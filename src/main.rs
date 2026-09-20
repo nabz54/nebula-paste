@@ -1,5 +1,6 @@
 mod actions;
 mod app;
+mod data_ui;
 mod demo;
 mod ipc;
 mod ocr;

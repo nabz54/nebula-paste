@@ -6,3 +6,5 @@ pub mod storage;
 pub mod i18n;
 
 pub mod templates;
+
+pub mod backup;

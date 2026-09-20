@@ -126,23 +126,3 @@ pub fn icon(name: &str) -> widget::icon::Handle {
     );
     widget::icon::from_svg_bytes(svg.into_bytes()).symbolic(true)
 }
-
-/// Clipboard contents need a solid surface even when the panel theme is translucent.
-pub fn popup_surface() -> theme::Container<'static> {
-    theme::Container::custom(|theme| {
-        let cosmic = theme.cosmic();
-        let background = cosmic.background(false);
-        let mut color = Color::from(background.base);
-        color.a = 1.0;
-        cosmic::iced::widget::container::Style {
-            background: Some(color.into()),
-            text_color: Some(background.on.into()),
-            icon_color: Some(background.on.into()),
-            border: Border {
-                radius: cosmic.corner_radii.radius_m.into(),
-                ..Default::default()
-            },
-            ..Default::default()
-        }
-    })
-}

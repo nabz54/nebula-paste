@@ -1,5 +1,8 @@
 # Nebula Paste — applet pour COSMIC
 
+**0.9 bêta :** sauvegarde/restauration, diagnostic sans contenu et fiabilité COSMIC. [Guide de test](docs/TESTING-0.9.md).
+
+
 [English](README.en.md) · [Changelog](CHANGELOG.fr.md) · [Contribuer](CONTRIBUTING.md)
 
 Un gestionnaire de presse-papiers local en **Rust/libcosmic** pour Fedora COSMIC : textes, images, liens, couleurs, code et références de fichiers. Projet indépendant, sans affiliation à Supaste ou System76.

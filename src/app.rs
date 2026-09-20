@@ -61,6 +61,7 @@ pub struct App {
     collections_open: bool,
     templates_open: bool,
     templates: crate::template_ui::State,
+    data: crate::data_ui::State,
     collection_target: Option<String>,
     collection_name: String,
     collection_delete: Option<String>,
@@ -114,6 +115,7 @@ pub enum Message {
     ReloadAppearance,
     Templates(bool),
     Template(crate::template_ui::Message),
+    Data(crate::data_ui::Message),
     TemplateFromClip(String),
     TogglePopupSize,
     Collections(bool),
@@ -179,6 +181,26 @@ pub enum Message {
 }
 
 impl App {
+    pub(crate) fn prepare_data_preview(&mut self) {
+        if self.demo {
+            self.data.pending = self
+                .store
+                .as_ref()
+                .and_then(|s| s.history_archive().ok())
+                .and_then(|a| a.validate().ok())
+                .map(std::sync::Arc::new);
+        }
+    }
+    pub(crate) fn render_data_panel(&self, narrow: bool) -> Element<'_, Message> {
+        widget::container(
+            self.data
+                .view(&self.clips.iter().map(|c| c.id.clone()).collect())
+                .map(Message::Data),
+        )
+        .width(if narrow { 360.0 } else { 700.0 })
+        .class(cosmic::theme::Container::WindowBackground)
+        .into()
+    }
     pub(crate) fn render_theme(&mut self, theme: cosmic::Theme) {
         self.application_theme = theme;
     }
@@ -408,6 +430,9 @@ impl App {
         }
     }
     fn width(&self) -> f32 {
+        if self.history.is_some() {
+            return self.viewport.max(WIDTH_MIN);
+        }
         self.viewport.clamp(WIDTH_MIN, self.ideal_width())
     }
     fn columns(&self) -> usize {
@@ -645,10 +670,12 @@ impl App {
                     Message::PasteMode,
                 ))
                 .push(row(tr!("Après copie", "After copying"), if self.settings.keep_open { tr!("Rester ouvert", "Keep open") } else { tr!("Fermer", "Close") }.into(), Message::KeepOpen))
+                .push(widget::text(tr_format!("Copies concernées : {}", "Affected clips: {}",self.clips.iter().filter(|c|!c.pinned && self.retention_draft>0 && c.timestamp<model::now()-i64::from(self.retention_draft)*86400).count())).size(12))
                 .push(widget::button::text(tr!("Appliquer la rétention", "Apply retention"))
                     .class(skin::button(false, 7.0, false)).on_press(Message::ApplyRetention))
-                .push(widget::text(tr!("Appliquer efface les anciennes copies hors favoris.", "Applying removes old unpinned clips.")).size(11).class(skin::MUTED))
+                .push(widget::text(tr!("Appliquer efface les anciennes copies hors favoris. Modèles conservés. Limites : 500 copies / 128 Mio, même sans limite d’âge.", "Applying removes old unpinned clips. Templates are retained. Limits: 500 clips / 128 MiB, even with no age limit.")).size(11).class(skin::MUTED))
                 .push(widget::text(location).size(11).class(skin::MUTED))
+                .push(self.data.view(&self.clips.iter().map(|c|c.id.clone()).collect()).map(Message::Data))
                 .push(
                     widget::text(
                         tr!("La rétention ne supprime jamais les favoris. Les préférences sont relues au démarrage.", "Retention never removes favorites. Preferences are restored at startup."),
@@ -1137,6 +1164,7 @@ impl cosmic::Application for App {
             collections_open: false,
             templates_open: false,
             templates: crate::template_ui::State::default(),
+            data: crate::data_ui::State::default(),
             collection_target: None,
             collection_name: String::new(),
             collection_delete: None,
@@ -1883,10 +1911,9 @@ impl cosmic::Application for App {
         } else {
             self.core
                 .applet
-                .popup_container(
-                    widget::container(widget::scrollable(content).height(Length::Shrink))
-                        .class(skin::popup_surface()),
-                )
+                .popup_container(widget::container(
+                    widget::scrollable(content).height(Length::Shrink),
+                ))
                 .limits(
                     Limits::NONE
                         .min_width(WIDTH_MIN)
@@ -1898,7 +1925,11 @@ impl cosmic::Application for App {
         if self.demo {
             view
         } else {
-            iced::widget::themer(Some(self.application_theme.clone()), view)
+            // Preserve the compositor-controlled transparency capability while
+            // using the independently watched application palette.
+            let mut theme = self.application_theme.clone();
+            theme.transparent = cosmic::theme::active().transparent;
+            iced::widget::themer(Some(theme), view)
                 .text_color(|theme| theme.cosmic().on_bg_color().into())
                 .into()
         }
@@ -1974,7 +2005,7 @@ impl cosmic::Application for App {
         Subscription::batch(subscriptions)
     }
     fn update(&mut self, message: Message) -> Task<cosmic::Action<Message>> {
-        if self.templates_open
+        if (self.templates_open || self.settings_open || self.collections_open)
             && matches!(
                 message,
                 Message::Enter
@@ -1987,6 +2018,99 @@ impl cosmic::Application for App {
             return Task::none();
         }
         match message {
+            Message::Data(msg) => {
+                use crate::data_ui::Message as D;
+                match msg {
+                    D::Cancel => {
+                        self.data.pending = None;
+                        self.data.policy = None;
+                    }
+                    D::Policy(p) => self.data.policy = Some(p),
+                    D::Loaded(result) => {
+                        self.data.busy = false;
+                        self.data.policy = None;
+                        match result {
+                            Ok(data) => self.data.pending = data,
+                            Err(e) => self.data.note = e,
+                        }
+                    }
+                    D::Finished(result) => {
+                        self.data.busy = false;
+                        self.data.note = match result {
+                            Ok(true) => tr!("Export terminé", "Export complete").into(),
+                            Ok(false) => tr!("Export annulé", "Export cancelled").into(),
+                            Err(e) => e,
+                        };
+                    }
+                    D::Restore if !self.data.busy && !self.demo => {
+                        self.data.busy = true;
+                        self.data.note.clear();
+                        return Task::perform(crate::data_ui::choose_restore(), |r| {
+                            cosmic::Action::App(Message::Data(D::Loaded(r)))
+                        });
+                    }
+                    D::Backup | D::Diagnostic if !self.data.busy && !self.demo => {
+                        if let Some(path) = self.store.as_ref().and_then(Store::data_path) {
+                            let settings =
+                                matches!(msg, D::Diagnostic).then(|| self.settings.clone());
+                            self.data.busy = true;
+                            self.data.note.clear();
+                            return Task::perform(
+                                crate::data_ui::export_snapshot(path, settings),
+                                |r| cosmic::Action::App(Message::Data(D::Finished(r))),
+                            );
+                        }
+                    }
+                    D::Confirm if !self.data.busy && !self.demo => {
+                        if let (Some(data), Some(policy), Some(store)) =
+                            (&self.data.pending, self.data.policy, &mut self.store)
+                        {
+                            let Some(path) = &self.settings_path else {
+                                self.data.note = tr!(
+                                    "Préférences indisponibles : restauration annulée",
+                                    "Preferences unavailable: restore cancelled"
+                                )
+                                .into();
+                                return Task::none();
+                            };
+                            let mut restored = self.settings.clone();
+                            restored.retention_days = 0;
+                            if let Err(e) = restored.save(path) {
+                                self.data.note = e;
+                                return Task::none();
+                            }
+                            match store.restore_history(data, policy, self.settings.ocr_indexing) {
+                                Ok(r) => {
+                                    self.settings.retention_days = 0;
+                                    self.retention_draft = 0;
+                                    self.undo = None;
+                                    self.invalidate_index();
+                                    self.refresh();
+                                    self.data.pending = None;
+                                    self.data.policy = None;
+                                    self.data.note = tr_format!(
+                                        "Restauration terminée : {} ajouts, {} conflits traités. Limite d’âge désactivée.",
+                                        "Restore complete: {} added, {} conflicts processed. Age limit disabled.",
+                                        r.added,
+                                        r.conflicts
+                                    );
+                                }
+                                Err(e) => {
+                                    self.data.note = e;
+                                    if let Err(save_error) = self.settings.save(path) {
+                                        self.settings.retention_days = 0;
+                                        self.retention_draft = 0;
+                                        self.data.note.push_str(&format!(
+                                            "; retention settings: {save_error}"
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
             Message::Templates(open) => {
                 self.templates_open = open;
                 self.settings_open = false;
@@ -2253,6 +2377,10 @@ impl cosmic::Application for App {
                 return widget::text_input::focus(self.search_id.clone());
             }
             Message::Escape => {
+                if self.data.pending.take().is_some() {
+                    self.data.policy = None;
+                    return Task::none();
+                }
                 if self.templates_open {
                     if self.templates.at_root() {
                         self.templates_open = false;
@@ -2486,6 +2614,8 @@ impl cosmic::Application for App {
                 }
             }
             Message::CloseView => {
+                self.data.pending = None;
+                self.data.policy = None;
                 self.templates.clear_values();
                 if self.demo {
                     return iced::exit();
@@ -3176,5 +3306,59 @@ mod tests {
         assert!(!app.settings.popup_expanded);
         assert_eq!(app.width(), WIDTH_POPUP);
         assert_eq!(app.page_size(), 5);
+    }
+    #[test]
+    fn preferences_shortcuts_do_not_copy_and_escape_cancels_restore() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        let _ = app.update(Message::Settings(true));
+        let status = app.status.clone();
+        for m in [Message::Enter, Message::Choose(0), Message::PlainSelected] {
+            let _ = app.update(m);
+        }
+        assert_eq!(app.status, status);
+        app.data.pending = Some(std::sync::Arc::new(
+            app.store
+                .as_ref()
+                .unwrap()
+                .history_archive()
+                .unwrap()
+                .validate()
+                .unwrap(),
+        ));
+        let _ = app.update(Message::Escape);
+        assert!(app.data.pending.is_none());
+        assert!(app.settings_open);
+    }
+    #[test]
+    fn restore_disables_retention_persistently_before_refresh() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        let mut source = Store::in_memory().unwrap();
+        let c = Clip::new("text/plain".into(), b"old restored entry".to_vec(), 1).unwrap();
+        source.insert(&c).unwrap();
+        app.data.pending = Some(std::sync::Arc::new(
+            source.history_archive().unwrap().validate().unwrap(),
+        ));
+        app.data.policy = Some(nebula_paste::backup::Conflict::KeepLocal);
+        let d = tempfile::tempdir().unwrap();
+        let p = d.path().join("settings.conf");
+        app.settings_path = Some(p.clone());
+        app.settings.retention_days = 1;
+        app.demo = false;
+        let _ = app.update(Message::Data(crate::data_ui::Message::Confirm));
+        assert!(app.clips.iter().any(|clip| clip.id == c.id));
+        assert_eq!(Settings::load(&p).retention_days, 0);
+        assert!(app.data.pending.is_none());
+    }
+    #[test]
+    fn separate_history_uses_available_width_in_compact_density() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        app.demo = false;
+        app.history = Some(Id::unique());
+        app.settings.density = Density::Compact;
+        let _ = app.update(Message::WindowResized(app.history.unwrap(), 1200.0));
+        assert_eq!(app.width(), 1200.0);
+        let _ = app.update(Message::WindowResized(app.history.unwrap(), 520.0));
+        assert_eq!(app.width(), 520.0);
+        assert_eq!(app.sidebar_width(), 0.0);
     }
 }

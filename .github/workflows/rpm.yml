@@ -2,7 +2,7 @@ name: Fedora RPM
 on:
   workflow_dispatch:
   push:
-    branches: [main, v0.8-templates]
+    branches: [main, v0.9-data]
 permissions:
   contents: read
 jobs:

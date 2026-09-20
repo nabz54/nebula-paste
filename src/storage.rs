@@ -74,9 +74,11 @@ impl Store {
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| e.to_string())?;
         // Validate new rows before consuming the cache, so errors preserve the UI.
+        let previous_ids: std::collections::HashSet<_> =
+            previous.iter().map(|c| c.id.as_str()).collect();
         let mut added = std::collections::HashMap::new();
         for (id, mime, timestamp, _, _) in &metadata {
-            if previous.iter().any(|c| &c.id == id) {
+            if previous_ids.contains(id.as_str()) {
                 continue;
             }
             let bytes = self

@@ -2,6 +2,10 @@
 
 [English](CHANGELOG.md)
 
+## 0.9.0-beta.1 — Fiabilité et maîtrise des données
+
+Sauvegarde/restauration de l’historique avec conflits explicites et transaction ; diagnostic sans contenu privé ; aperçu de rétention ; transparence native COSMIC, fenêtre d’historique redimensionnable et isolation des raccourcis. Mesures recherche/OCR reproductibles. Les essais COSMIC réels restent à faire. [Guide de test](docs/TESTING-0.9.md).
+
 ## 0.8.0-beta.1 — Modèles réutilisables
 
 - Nouvelle section **Modèles** dans le popup et la fenêtre complète : créer, modifier, rechercher, classer et supprimer avec confirmation.

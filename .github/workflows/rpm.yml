@@ -2,7 +2,7 @@ name: Fedora RPM
 on:
   workflow_dispatch:
   push:
-    branches: [main, v0.9-data]
+    branches: [main, v0.9-data, fix/native-popup-blur]
 permissions:
   contents: read
 jobs:

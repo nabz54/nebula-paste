@@ -32,6 +32,8 @@ Le moteur Tesseract, Leptonica et les modèles français/anglais sont incorporé
 
 ## Utiliser
 
+La vue élargie utilise un bandeau horizontal à une seule rangée, avec navigation par pages. La recherche reste accessible en haut ; les onglets affichent des compteurs. Un clic copie, le clic droit ou « Aperçu / actions » ouvre le détail pour organiser la copie. Sous 600 unités de largeur, la liste compacte prend le relais.
+
 Dans le popup, **Agrandir / Réduire** bascule entre la liste compacte et la grille élargie, sans effacer la recherche ni les filtres. Le choix est enregistré. Les collections restent accessibles dans les onglets ; **Fenêtre séparée** ouvre l’historique indépendant. La surface du panneau conserve uniquement son icône. La largeur du popup peut être réduite par COSMIC si l’écran manque de place.
 
 Clique sur l’icône du panneau, recherche ou filtre les copies, puis clique sur une carte pour recopier son contenu original. Ouvre **Historique** pour la fenêtre complète. Le lanceur « Nebula Paste — Historique » et `nebula-paste --history` nécessitent l’applet déjà active.

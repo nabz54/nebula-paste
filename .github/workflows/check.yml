@@ -19,6 +19,22 @@ jobs:
       - run: cargo test --locked
       - run: cargo build --locked
       - run: bash scripts/check-embedded-ocr.sh target/debug/nebula-paste
+      - name: Render native applet previews
+        run: |
+          mkdir -p ui-previews
+          target/debug/nebula-paste --render-preview ui-previews/ribbon-dark.png ribbon dark
+          target/debug/nebula-paste --render-preview ui-previews/ribbon-light.png ribbon light
+          target/debug/nebula-paste --render-preview ui-previews/compact-dark.png popup dark
+          python3 - <<'PYTHON'
+          import pathlib, struct
+          for path in pathlib.Path('ui-previews').glob('ribbon-*.png'):
+              width, height = struct.unpack('>II', path.read_bytes()[16:24])
+              assert width <= 940 and 200 < height <= 420, (path, width, height)
+          PYTHON
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nebula-ui-previews
+          path: ui-previews/*.png
   rpm:
     needs: check
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/'))

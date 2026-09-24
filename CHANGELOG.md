@@ -4,6 +4,7 @@
 
 ## 1.0.0-rc.1 — Stable release candidate
 
+- Expanded popup shelf: one row of previews, integrated search, filter counts, pagination and actions via right-click or the preview button. Compact view retained.
 - Native COSMIC blur for compact and expanded applet popups, following theme settings (PR #8).
 - Distinct version from the 0.9 beta for unambiguous RPM upgrades and diagnostics.
 - Release pipeline prepared to attach Fedora 44 RPMs and checksums only after tests and package builds succeed.

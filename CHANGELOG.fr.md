@@ -4,6 +4,7 @@
 
 ## 1.0.0-rc.1 — Candidate à la version stable
 
+- Vue élargie en bandeau : une rangée d’aperçus, recherche intégrée, compteurs de filtres, pagination et actions au clic droit ou via le bouton d’aperçu. Vue compacte conservée.
 - Flou natif COSMIC pour les popups compacts et élargis, suivant les réglages du thème (correctif de la PR #8).
 - Numéro distinct de la bêta 0.9 : mise à niveau RPM et diagnostic de version sans ambiguïté.
 - Publication préparée pour joindre le RPM Fedora 44 et ses empreintes à la release, après réussite des tests et de la construction.

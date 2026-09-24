@@ -32,6 +32,8 @@ Tesseract, Leptonica and French/English models are embedded in the executable. N
 
 ## Usage
 
+The expanded popup uses a single horizontal row with page navigation. Search stays at the top and tabs show counts. Click to copy; right-click or “Preview / actions” opens details to organize the clip. Below 600 logical units it falls back to the compact list.
+
 Use **Expand / Collapse** in the popup to switch between the compact list and the wider grid without clearing search or filters. Your choice is saved. Collections remain accessible in tabs; **Separate window** opens independent history. The panel surface renders only its icon. COSMIC may reduce popup width when screen space is limited.
 
 Open the panel applet, search/filter, then click a card to copy its original content. Open **History** for the full window. The history desktop launcher and `nebula-paste --history` require the panel applet to be running.

@@ -1,3 +1,6 @@
+#[path = "ribbon.rs"]
+mod ribbon;
+
 use crate::{ipc::Instance, skin};
 use cosmic::{
     iced::{
@@ -239,6 +242,12 @@ impl App {
         self.viewport = WIDTH_POPUP;
         self.reset();
     }
+    pub(crate) fn render_ribbon(&mut self) {
+        self.render_popup();
+        self.settings.popup_expanded = true;
+        self.viewport = WIDTH_WIDE;
+    }
+
     pub(crate) fn expand_demo(&mut self) {
         if !self.demo {
             return;
@@ -483,7 +492,7 @@ impl App {
     }
     fn rows(&self) -> usize {
         if self.is_popup() {
-            return if self.compact_popup() { 5 } else { 2 };
+            return if self.compact_popup() { 5 } else { 1 };
         }
         match self.settings.density {
             Density::Compact => 6,
@@ -1271,6 +1280,9 @@ impl cosmic::Application for App {
     fn view_window(&self, id: Id) -> Element<'_, Message> {
         if !self.demo && self.core.main_window_id() == Some(id) {
             return self.view();
+        }
+        if self.ribbon_visible() {
+            return self.view_ribbon();
         }
         let compact = if self.is_popup() {
             self.compact_popup()
@@ -3291,7 +3303,25 @@ mod tests {
         );
     }
     #[test]
-    fn popup_size_toggle_preserves_filters_and_uses_grid() {
+    fn ribbon_yields_to_editors_and_falls_back_on_narrow_outputs() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        app.render_ribbon();
+        assert!(app.ribbon_visible());
+        let _ = app.update(Message::Settings(true));
+        assert!(!app.ribbon_visible());
+        let _ = app.update(Message::Settings(false));
+        assert!(app.ribbon_visible());
+        let _ = app.update(Message::Detail(Some(app.clips[0].id.clone())));
+        assert!(!app.ribbon_visible());
+        let _ = app.update(Message::Detail(None));
+        let _ = app.update(Message::Viewport(360.0));
+        assert!(app.compact_popup());
+        assert!(!app.ribbon_visible());
+        assert_eq!(app.page_size(), 5);
+    }
+
+    #[test]
+    fn popup_size_toggle_preserves_filters_and_uses_single_row() {
         let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
         app.demo = false;
         app.query = "test".into();
@@ -3301,7 +3331,7 @@ mod tests {
         assert!(app.settings.popup_expanded);
         assert_eq!(app.width(), WIDTH_WIDE);
         assert_eq!(app.columns(), 4);
-        assert_eq!(app.page_size(), 8);
+        assert_eq!(app.page_size(), 4);
         assert_eq!(app.query, "test");
         assert_eq!(app.category, "Work");
         assert!(app.favorites);

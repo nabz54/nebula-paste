@@ -28,6 +28,8 @@ Les versions ci-dessous sont des objectifs, pas des fonctionnalités déjà livr
 
 ## 1.0 — Version stable
 
+**En préparation : 1.0.0-rc.1.** Correctif du flou des popups confirmé par utilisateur, version distincte, publication RPM après tests et guides FR/EN de migration. [Validation restante](TESTING-1.0.md).
+
 **Proposé :** installation et mise à jour RPM reproductibles, migration préservant les données, documentation FR/EN complète, dépannage et désinstallation documentés, versions Fedora/COSMIC effectivement testées et annoncées.
 
 **Critères de sortie :** plusieurs semaines d’usage réel, aucun défaut bloquant connu, installation neuve et mise à niveau vérifiées, limitations publiées. La date dépend des essais, pas d’une échéance arbitraire.

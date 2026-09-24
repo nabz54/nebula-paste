@@ -28,6 +28,8 @@ These are targets, not shipped features or promised dates. Version 0.7 remains a
 
 ## 1.0 — Stable release
 
+**In preparation: 1.0.0-rc.1.** User-confirmed popup blur fix, distinct version, RPM publication after tests and bilingual migration guides. [Remaining validation](TESTING-1.0.en.md).
+
 **Proposed:** reproducible RPM installation and updates, data-preserving upgrades, complete FR/EN documentation, troubleshooting and uninstall instructions, explicit supported versions based on testing.
 
 **Exit criteria:** several weeks of real usage, no known blocking defects, fresh installation and upgrades checked, published limitations. Timing depends on validation.

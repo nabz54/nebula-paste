@@ -2,6 +2,14 @@
 
 [Français](CHANGELOG.fr.md)
 
+## 1.0.0-rc.1 — Stable release candidate
+
+- Native COSMIC blur for compact and expanded applet popups, following theme settings (PR #8).
+- Distinct version from the 0.9 beta for unambiguous RPM upgrades and diagnostics.
+- Release pipeline prepared to attach Fedora 44 RPMs and checksums only after tests and package builds succeed.
+- French/English installation, local-install migration, troubleshooting and release acceptance documentation.
+- No data format changes in this candidate. Main workflows and the separate history window still need validation before stable 1.0.
+
 ## 0.9.0-beta.1 — Reliability and data control
 
 History backup/restore with explicit conflicts and transactional rollback; private diagnostics without content; retention impact preview; native COSMIC transparency, full-width history resizing and isolated keyboard shortcuts. Reproducible search/OCR benchmarks. Live COSMIC testing remains pending. [Testing guide](docs/TESTING-0.9.en.md).

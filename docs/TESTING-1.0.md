@@ -36,3 +36,7 @@ Suivre les scénarios détaillés des guides [0.8](TESTING-0.8.md) et [0.9](TEST
 ## Décision stable
 
 Clore les défauts bloquants, renseigner les essais ci-dessus et les limitations restantes, puis mettre ensemble les versions Cargo/RPM et les changelogs à 1.0.0. Aucun changement de version à stable automatique. Les paquets actuels restent non signés ; aucun support d'autres versions Fedora n'est promis.
+
+## Bandeau élargi
+
+Vérifier une rangée de grandes vignettes et la pagination avec plus de quatre copies. Tester recherche, filtres et compteurs, copie au clic, actions au clic droit ou via « Aperçu / actions », favoris, suppression et annulation. Vérifier la navigation clavier, le retour en vue compacte et le repli automatique sur petit écran. Contrôler les messages d’erreur, la pause, les thèmes clair/sombre et le flou natif dans une session COSMIC. Les captures automatiques ne valident pas le compositeur.

@@ -36,3 +36,7 @@ Follow the detailed [0.8](TESTING-0.8.en.md) and [0.9](TESTING-0.9.en.md) test g
 ## Stable decision
 
 Close blocking defects, record the scenarios above and remaining limitations, then update Cargo/RPM versions and changelogs together to 1.0.0. There is no automatic promotion to stable. Packages remain unsigned; support for other Fedora versions is not promised.
+
+## Expanded shelf
+
+Check one row of large previews and pagination with more than four clips. Test search, filters and counters, click to copy, right-click or “Preview / actions”, favorites, deletion and undo. Check keyboard navigation, switching back to compact view and automatic narrow-screen fallback. Verify error messages, pause, light/dark themes and native blur in a COSMIC session. Automated screenshots do not validate the compositor.

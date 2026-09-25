@@ -241,14 +241,7 @@ impl App {
             .flash
             .as_ref()
             .map(|(s, _)| s.as_str())
-            .unwrap_or(if paused {
-                tr!("Capture en pause", "Capture paused")
-            } else {
-                tr!(
-                    "Clic : copier · Clic droit : actions · Alt+←/→ : sélectionner",
-                    "Click: copy · Right-click: actions · Alt+←/→: select"
-                )
-            });
+            .unwrap_or(&self.status);
         let mut content = widget::column([])
             .push(header)
             .push(tabs)

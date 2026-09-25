@@ -52,9 +52,12 @@ pub fn preview(path: &str) -> Result<(), Box<dyn std::error::Error>> {
     if mode.starts_with("data") {
         app.prepare_data_preview();
     }
-    let popup = mode == "popup" || mode.contains("popup");
+    let popup = mode == "ribbon" || mode == "popup" || mode.contains("popup");
     if popup {
         app.render_popup();
+    }
+    if mode == "ribbon" {
+        app.render_ribbon();
     }
     let theme = if std::env::args().nth(4).as_deref() == Some("light") {
         cosmic::Theme::light()

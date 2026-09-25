@@ -1,13 +1,13 @@
 # Nebula Paste — COSMIC applet
 
-**0.9 beta:** history backup/restore, content-free diagnostics and COSMIC reliability. [Testing guide](docs/TESTING-0.9.en.md).
+**1.0.0-rc.1 — stable release candidate.** Native applet blur fixed; final validation in progress. [Installation and upgrades](docs/INSTALL.en.md) · [1.0 validation](docs/TESTING-1.0.en.md).
 
 
 [Français](README.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
 
 A local **Rust/libcosmic clipboard manager** for Fedora COSMIC: text, images, links, colors, code and file references. An independent project, not affiliated with Supaste or System76.
 
-## 0.8.0-beta.1 — Reusable templates
+## Reusable templates
 
 - New **Templates** section in the popup and full window: create, edit, search, file and confirm deletion.
 - Create from a text clip; templates are stored separately from history and survive retention and clearing.
@@ -31,6 +31,8 @@ Requires Rust 1.93 or newer. Cloning the public repository needs no GitHub login
 Tesseract, Leptonica and French/English models are embedded in the executable. No system Tesseract package or runtime model download is needed. The first build can take a while.
 
 ## Usage
+
+The expanded popup uses a single horizontal row with page navigation. Search stays at the top and tabs show counts. Click to copy; right-click or “Preview / actions” opens details to organize the clip. Below 600 logical units it falls back to the compact list.
 
 Use **Expand / Collapse** in the popup to switch between the compact list and the wider grid without clearing search or filters. Your choice is saved. Collections remain accessible in tabs; **Separate window** opens independent history. The panel surface renders only its icon. COSMIC may reduce popup width when screen space is limited.
 

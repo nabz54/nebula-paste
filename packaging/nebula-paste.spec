@@ -1,8 +1,8 @@
-%global crate_version 0.9.0-beta.1
+%global crate_version 1.0.0-rc.1
 %global debug_package %{nil}
 
 Name:           nebula-paste
-Version:        0.9.0~beta.1
+Version:        1.0.0~rc.1
 Release:        1%{?dist}
 Summary:        Local clipboard history applet for COSMIC
 License:        MPL-2.0 AND Apache-2.0 AND BSD-2-Clause AND MIT
@@ -25,7 +25,7 @@ Recommends:     wtype
 A Rust/libcosmic clipboard applet with local history, collections and optional
 image-text search. French/English OCR libraries and models are bundled.
 Add Nebula Paste to the COSMIC panel after installation.
-This is an upstream beta package, not an official Fedora repository package.
+This is an upstream release candidate package, not an official Fedora repository package.
 
 %prep
 %setup -q -n %{name}-%{crate_version}
@@ -59,6 +59,9 @@ bash scripts/check-embedded-ocr.sh target/release/nebula-paste
 %{_datadir}/icons/hicolor/scalable/apps/io.github.nebulapaste.NebulaPaste-symbolic.svg
 
 %changelog
+* Thu Sep 24 2026 Nebula Paste contributors - 1.0.0~rc.1-1
+- Native popup blur, distinct release candidate and installation documentation
+
 * Sun Sep 20 2026 Nebula Paste contributors - 0.9.0~beta.1-1
 - History backup/restore, diagnostics and COSMIC reliability
 

@@ -19,25 +19,52 @@ jobs:
       - run: cargo test --locked
       - run: cargo build --locked
       - run: bash scripts/check-embedded-ocr.sh target/debug/nebula-paste
-  publish-beta:
-    name: Publish tested beta sources
+      - name: Render native applet previews
+        run: |
+          mkdir -p ui-previews
+          target/debug/nebula-paste --render-preview ui-previews/ribbon-dark.png ribbon dark
+          target/debug/nebula-paste --render-preview ui-previews/ribbon-light.png ribbon light
+          target/debug/nebula-paste --render-preview ui-previews/compact-dark.png popup dark
+          python3 - <<'PYTHON'
+          import pathlib, struct
+          for path in pathlib.Path('ui-previews').glob('ribbon-*.png'):
+              width, height = struct.unpack('>II', path.read_bytes()[16:24])
+              assert width <= 940 and 200 < height <= 420, (path, width, height)
+          PYTHON
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nebula-ui-previews
+          path: ui-previews/*.png
+  rpm:
     needs: check
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/'))
+    uses: ./.github/workflows/rpm.yml
+  publish:
+    name: Publish tested release with Fedora RPM
+    needs: [check, rpm]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     concurrency:
-      group: nebula-beta-release
+      group: nebula-release
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: nebula-paste-fedora44-rpm
+          path: dist/rpm
+      - name: Verify package checksums
+        working-directory: dist/rpm
+        run: sha256sum -c SHA256SUMS
       - name: Prepare bilingual release notes
         id: release
         run: |
-          python3 - <<'PY'
-          import os, pathlib, tomllib
+          python3 - <<'PYTHON'
+          import os, pathlib, re, tomllib
           version = tomllib.loads(pathlib.Path('Cargo.toml').read_text())['package']['version']
-          assert '-beta.' in version
+          assert re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-(?:beta|rc)\.[0-9]+)?", version)
           sections = []
           for name in ['CHANGELOG.fr.md', 'CHANGELOG.md']:
               text = pathlib.Path(name).read_text()
@@ -46,14 +73,20 @@ jobs:
           pathlib.Path('release-notes.md').write_text('\n\n'.join(sections) + '\n')
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
               output.write('tag=v' + version + '\n')
-          PY
-      - name: Publish prerelease
+              output.write('prerelease=' + str('-' in version).lower() + '\n')
+          PYTHON
+      - name: Publish release and packages
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          PRERELEASE: ${{ steps.release.outputs.prerelease }}
         run: |
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            echo "Release already exists; preserving it."
-          else
-            gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" --prerelease --title "Nebula Paste $RELEASE_TAG" --notes-file release-notes.md
+            echo "Release already exists; preserving its tag and assets."
+            exit 0
           fi
+          args=()
+          if [ "$PRERELEASE" = true ]; then args+=(--prerelease --latest=false); fi
+          gh release create "$RELEASE_TAG" dist/rpm/*.rpm dist/rpm/SHA256SUMS \
+            --target "$GITHUB_SHA" "${args[@]}" \
+            --title "Nebula Paste $RELEASE_TAG" --notes-file release-notes.md

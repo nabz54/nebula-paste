@@ -17,7 +17,7 @@ Après téléchargement et extraction de l’artefact, vérifie les empreintes p
 
 ```bash
 sha256sum -c SHA256SUMS
-sudo dnf install ./nebula-paste-0.7.0~beta.1-1.fc44.x86_64.rpm
+sudo dnf install ./nebula-paste-1.0.0~rc.1-1.fc44.x86_64.rpm
 ```
 
 Retire l’applet du panneau avant la mise à jour et ajoute-la après. Si tu utilisais `scripts/install.sh`, désinstalle d’abord cette installation avec `bash scripts/uninstall.sh` pour éviter que le binaire utilisateur masque `/usr/bin/nebula-paste`. L’historique est conservé par la désinstallation normale ; ne supprime pas le dossier de données. Le RPM ne modifie pas automatiquement ton panneau. `wtype` est une recommandation pour le collage direct.

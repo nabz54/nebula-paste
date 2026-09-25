@@ -15,9 +15,11 @@ mkdir -p ~/Téléchargements
 repertoire=$(mktemp -d "$HOME/Téléchargements/nebula-1.0-XXXXXX")
 cd "$repertoire"
 base='https://github.com/nabz54/nebula-paste/releases/download/v1.0.0-rc.1'
-curl --fail --location --output nebula-paste-1.0.0~rc.1-1.fc44.x86_64.rpm "$base/nebula-paste-1.0.0~rc.1-1.fc44.x86_64.rpm" &&
+curl --fail --location --output nebula-paste-1.0.0~rc.1-1.fc44.x86_64.rpm "$base/nebula-paste-1.0.0.rc.1-1.fc44.x86_64.rpm" &&
 curl --fail --location --output SHA256SUMS "$base/SHA256SUMS"
 ```
+
+GitHub remplace le `~` par un point dans le nom publié. La commande ci-dessus restaure le nom local attendu par `SHA256SUMS`.
 
 Le manifeste contient également le RPM source, qui n'est pas nécessaire à l'installation. Vérifier précisément le binaire téléchargé :
 

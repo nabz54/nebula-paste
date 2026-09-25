@@ -14,7 +14,7 @@ For a published release, no login is required:
 package_dir=$(mktemp -d "$HOME/nebula-1.0-XXXXXX")
 cd "$package_dir"
 base='https://github.com/nabz54/nebula-paste/releases/download/v1.0.0-rc.1'
-curl --fail --location --output nebula-paste-1.0.0~rc.1-1.fc44.x86_64.rpm "$base/nebula-paste-1.0.0~rc.1-1.fc44.x86_64.rpm" &&
+curl --fail --location --output nebula-paste-1.0.0~rc.1-1.fc44.x86_64.rpm "$base/nebula-paste-1.0.0.rc.1-1.fc44.x86_64.rpm" &&
 curl --fail --location --output SHA256SUMS "$base/SHA256SUMS"
 grep -F '  nebula-paste-1.0.0~rc.1-1.fc44.x86_64.rpm' SHA256SUMS | sha256sum -c -
 ```

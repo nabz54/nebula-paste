@@ -89,6 +89,8 @@ pub struct App {
     copying: bool,
     template_copy: bool,
     search_id: iced::widget::Id,
+    shelf_id: iced::widget::Id,
+    shelf_offset: f32,
     ocr_busy: bool,
     dragging: bool,
     settings: Settings,
@@ -121,6 +123,14 @@ pub enum Message {
     Data(crate::data_ui::Message),
     TemplateFromClip(String),
     TogglePopupSize,
+    PreviewSelected,
+    ShelfScrolled(f32),
+    CardSize,
+    ShowFilters,
+    ShowCollections,
+    SortOrder,
+    DefaultCollection,
+    DefaultPopup,
     Collections(bool),
     EditCollection(Option<String>),
     CollectionName(String),
@@ -431,7 +441,8 @@ impl App {
             .into()
     }
     fn filtered(&self) -> Vec<&Clip> {
-        self.clips
+        let mut clips: Vec<_> = self
+            .clips
             .iter()
             .filter(|clip| {
                 clip.matches_with_ocr(
@@ -445,7 +456,11 @@ impl App {
                         .unwrap_or(""),
                 )
             })
-            .collect()
+            .collect();
+        if self.settings.oldest_first {
+            clips.reverse();
+        }
+        clips
     }
     /// Largeur idéale du volet pour la densité courante ; le compositeur peut
     /// en accorder moins, ce que `viewport` rapporte.
@@ -501,6 +516,9 @@ impl App {
     }
     /// Cartes affichées par page, donc aussi bornes de la sélection clavier.
     fn page_size(&self) -> usize {
+        if self.is_popup() && !self.compact_popup() {
+            return self.filtered().len().max(1);
+        }
         (self.columns() * self.rows()).max(1)
     }
     /// Déplace la sélection dans la page, quelle que soit la densité.
@@ -540,6 +558,8 @@ impl App {
             .map(|clip| clip.id.clone())
     }
     fn reset(&mut self) {
+        self.shelf_offset = 0.0;
+        self.shelf_id = iced::widget::Id::unique();
         self.page = 0;
         self.selected = 0;
         self.clear_confirm = false;
@@ -682,6 +702,12 @@ impl App {
         widget::container(
             widget::column([])
                 .push(widget::text(tr!("Préférences", "Preferences")).size(15).class(skin::TEXT))
+                .push(row(tr!("Cartes du bandeau", "Shelf cards"), [tr!("Petites", "Small"), tr!("Moyennes", "Medium"), tr!("Grandes", "Large")][self.settings.card_size as usize].into(), Message::CardSize))
+                .push(row(tr!("Filtres du bandeau", "Shelf filters"), if self.settings.show_filters { tr!("Affichés", "Shown") } else { tr!("Masqués", "Hidden") }.into(), Message::ShowFilters))
+                .push(row(tr!("Collections du bandeau", "Shelf collections"), if self.settings.show_collections { tr!("Affichées", "Shown") } else { tr!("Masquées", "Hidden") }.into(), Message::ShowCollections))
+                .push(row(tr!("Ordre des copies", "Clip order"), if self.settings.oldest_first { tr!("Anciennes en premier", "Oldest first") } else { tr!("Récentes en premier", "Newest first") }.into(), Message::SortOrder))
+                .push(row(tr!("Vue de l’applet", "Applet view"), if self.settings.popup_expanded { tr!("Bandeau", "Shelf") } else { tr!("Compacte", "Compact") }.into(), Message::DefaultPopup))
+                .push(row(tr!("Collection à l’ouverture", "Opening collection"), if self.settings.default_collection.is_empty() { tr!("Historique", "History").into() } else { self.settings.default_collection.clone() }, Message::DefaultCollection))
                 .push(row(tr!("Langue", "Language"), self.settings.ui_language.into(), Message::Language))
                 .push(row(
                     tr!("Affichage", "Layout"),
@@ -1228,6 +1254,8 @@ impl cosmic::Application for App {
             copying: false,
             template_copy: false,
             search_id: iced::widget::Id::unique(),
+            shelf_id: iced::widget::Id::unique(),
+            shelf_offset: 0.0,
             ocr_busy: false,
             dragging: false,
             retention_draft: settings.retention_days,
@@ -2037,6 +2065,14 @@ impl cosmic::Application for App {
                         .ok()
                         .filter(|n| (1..=MAX_SHORTCUTS).contains(n))
                         .map(|n| Message::Choose(n - 1)),
+                    Key::Character(" ")
+                        if status == iced::event::Status::Ignored
+                            && !mods.control()
+                            && !mods.alt()
+                            && !mods.logo() =>
+                    {
+                        Some(Message::PreviewSelected)
+                    }
                     Key::Named(Named::Enter) if status == iced::event::Status::Ignored => {
                         Some(Message::Enter)
                     }
@@ -2047,10 +2083,27 @@ impl cosmic::Application for App {
         Subscription::batch(subscriptions)
     }
     fn update(&mut self, message: Message) -> Task<cosmic::Action<Message>> {
-        if (self.templates_open || self.settings_open || self.collections_open)
+        let was_ribbon = self.ribbon_visible();
+        let reset_shelf = matches!(
+            &message,
+            Message::Search(_)
+                | Message::Filter(_)
+                | Message::Favorites(_)
+                | Message::Category(_)
+                | Message::SortOrder
+                | Message::CardSize
+                | Message::ShowFilters
+                | Message::Viewport(_)
+        );
+        if (self.templates_open
+            || self.settings_open
+            || self.collections_open
+            || self.clear_confirm
+            || self.pause_menu)
             && matches!(
                 message,
                 Message::Enter
+                    | Message::PreviewSelected
                     | Message::Choose(_)
                     | Message::PlainSelected
                     | Message::Move(_)
@@ -2254,6 +2307,63 @@ impl cosmic::Application for App {
                     }
                 }
             }
+            Message::PreviewSelected => {
+                let id = if self.detail.is_some() {
+                    None
+                } else {
+                    self.target()
+                };
+                return self.update(Message::Detail(id));
+            }
+            Message::ShelfScrolled(x) => {
+                self.shelf_offset = x.max(0.0);
+                if self.ribbon_visible() {
+                    let stride = self.shelf_card_width() + 10.0;
+                    let left = self.selected as f32 * stride;
+                    if left + self.shelf_card_width() <= self.shelf_offset
+                        || left >= self.shelf_offset + self.width() - 24.0
+                    {
+                        let first = (self.shelf_offset / stride).ceil() as usize;
+                        self.selected = first.min(self.filtered().len().saturating_sub(1));
+                    }
+                }
+            }
+            Message::CardSize => {
+                self.settings.card_size = (self.settings.card_size + 1) % 3;
+                self.reset();
+                self.save_settings();
+            }
+            Message::ShowFilters => {
+                self.settings.show_filters = !self.settings.show_filters;
+                self.kind = None;
+                self.reset();
+                self.save_settings();
+            }
+            Message::ShowCollections => {
+                self.settings.show_collections = !self.settings.show_collections;
+                self.save_settings();
+            }
+            Message::SortOrder => {
+                self.settings.oldest_first = !self.settings.oldest_first;
+                self.reset();
+                self.save_settings();
+            }
+            Message::DefaultPopup => {
+                self.settings.popup_expanded = !self.settings.popup_expanded;
+                self.reset();
+                self.save_settings();
+            }
+            Message::DefaultCollection => {
+                let index = self
+                    .collections
+                    .iter()
+                    .position(|c| c == &self.settings.default_collection);
+                self.settings.default_collection = match index {
+                    Some(i) => self.collections.get(i + 1).cloned().unwrap_or_default(),
+                    None => self.collections.first().cloned().unwrap_or_default(),
+                };
+                self.save_settings();
+            }
             Message::ReloadAppearance => {
                 self.application_theme = cosmic::theme::system_preference();
             }
@@ -2264,6 +2374,7 @@ impl cosmic::Application for App {
                 self.settings.popup_expanded = !self.settings.popup_expanded;
                 self.save_settings();
                 self.viewport = self.ideal_width();
+                self.reset();
                 self.refresh();
                 self.dragging = false;
                 let Some(parent) = self.core.main_window_id() else {
@@ -2428,6 +2539,9 @@ impl cosmic::Application for App {
                     self.settings_open = false;
                 } else if self.detail.is_some() {
                     self.detail = None;
+                    if self.ribbon_visible() {
+                        return self.reveal_shelf_selection();
+                    }
                 } else {
                     return self.update(Message::CloseView);
                 }
@@ -2508,7 +2622,11 @@ impl cosmic::Application for App {
             }
             Message::Viewport(width) => {
                 if width.is_finite() && (self.viewport - width).abs() > 1.0 {
+                    let was_compact = self.compact_popup();
                     self.viewport = width;
+                    if was_compact != self.compact_popup() {
+                        self.reset();
+                    }
                     self.refresh();
                 }
             }
@@ -2668,6 +2786,14 @@ impl cosmic::Application for App {
                     .take()
                     .map_or_else(Task::none, iced::window::close);
                 self.viewport = self.ideal_width();
+                self.category = if self.collections.contains(&self.settings.default_collection) {
+                    self.settings.default_collection.clone()
+                } else {
+                    String::new()
+                };
+                self.favorites = false;
+                self.query.clear();
+                self.kind = None;
                 self.collections_open = false;
                 self.collection_delete = None;
                 self.reset();
@@ -2902,6 +3028,9 @@ impl cosmic::Application for App {
                     .map(|c| c.category.clone())
                     .unwrap_or_default();
                 self.detail = id;
+                if self.ribbon_visible() {
+                    return self.reveal_shelf_selection();
+                }
             }
             Message::EditCategory(value) => self.category_edit = value.chars().take(40).collect(),
             Message::SaveCategory => {
@@ -2973,12 +3102,20 @@ impl cosmic::Application for App {
                 }
                 self.selected = 0;
             }
-            Message::Move(next) => self.step(if next { 1 } else { -1 }),
+            Message::Move(next) => {
+                self.step(if next { 1 } else { -1 });
+                if self.ribbon_visible() {
+                    return self.reveal_shelf_selection();
+                }
+            }
             // En liste compacte une colonne, un déplacement de ligne vaut un déplacement
             // d’élément : la navigation reste la même dans les deux densités.
             Message::MoveRow(next) => {
                 let step = self.columns() as isize;
                 self.step(if next { step } else { -step });
+                if self.ribbon_visible() {
+                    return self.reveal_shelf_selection();
+                }
             }
             Message::Enter => {
                 if let Some(id) = self.detail.clone() {
@@ -2996,6 +3133,9 @@ impl cosmic::Application for App {
                     return self.copy(&id);
                 }
             }
+        }
+        if self.ribbon_visible() && (reset_shelf || !was_ribbon) {
+            return self.reveal_shelf_selection();
         }
         Task::none()
     }
@@ -3303,6 +3443,65 @@ mod tests {
         );
     }
     #[test]
+    fn continuous_shelf_keeps_navigation_preview_and_search_consistent() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        app.render_ribbon();
+        let original = app.clips[0].clone();
+        for i in 0..100 {
+            let mut clip = original.clone();
+            clip.id = format!("extra-{i}");
+            app.clips.push(clip);
+        }
+        let count = app.clips.len();
+        assert_eq!(app.page_size(), count);
+        for _ in 0..60 {
+            let _ = app.update(Message::Move(true));
+        }
+        assert_eq!(app.selected, 60);
+        assert!(app.shelf_offset > 0.0);
+        // A scroll notification after revealing the rightmost card must not move selection.
+        let _ = app.update(Message::ShelfScrolled(app.shelf_offset));
+        assert_eq!(app.selected, 60);
+        let target = app.target();
+        let _ = app.update(Message::PreviewSelected);
+        assert_eq!(app.detail, target);
+        let _ = app.update(Message::Escape);
+        assert_eq!(app.target(), target);
+        let _ = app.update(Message::Search("no matching clip 123456789".into()));
+        assert_eq!(app.selected, 0);
+        assert_eq!(app.shelf_offset, 0.0);
+        assert!(app.target().is_none());
+        let _ = app.update(Message::Move(true));
+        assert_eq!(app.selected, 0);
+    }
+
+    #[test]
+    fn opening_collection_falls_back_when_deleted() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        app.render_ribbon();
+        app.collections.push("Network".into());
+        app.settings.default_collection = "Network".into();
+        let _ = app.update(Message::Toggle);
+        assert_eq!(app.category, "Network");
+        app.popup = None;
+        app.collections.retain(|c| c != "Network");
+        let _ = app.update(Message::Toggle);
+        assert!(app.category.is_empty());
+    }
+
+    #[test]
+    fn preview_shortcut_does_not_act_inside_editors() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        app.settings_open = true;
+        let _ = app.update(Message::PreviewSelected);
+        assert!(app.detail.is_none());
+        app.settings_open = false;
+        app.templates_open = true;
+        let _ = app.update(Message::PreviewSelected);
+        assert!(app.detail.is_none());
+    }
+
+    #[test]
     fn ribbon_yields_to_editors_and_falls_back_on_narrow_outputs() {
         let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
         app.render_ribbon();
@@ -3321,7 +3520,7 @@ mod tests {
     }
 
     #[test]
-    fn popup_size_toggle_preserves_filters_and_uses_single_row() {
+    fn popup_size_toggle_preserves_filters_and_uses_continuous_shelf() {
         let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
         app.demo = false;
         app.query = "test".into();
@@ -3331,7 +3530,7 @@ mod tests {
         assert!(app.settings.popup_expanded);
         assert_eq!(app.width(), WIDTH_WIDE);
         assert_eq!(app.columns(), 4);
-        assert_eq!(app.page_size(), 4);
+        assert_eq!(app.page_size(), app.filtered().len().max(1));
         assert_eq!(app.query, "test");
         assert_eq!(app.category, "Work");
         assert!(app.favorites);

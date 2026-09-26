@@ -2,6 +2,16 @@
 
 [Français](CHANGELOG.fr.md)
 
+## 1.1.0-beta.1 — Shelf navigation and customization
+
+- Continuous horizontal scrolling; card widgets built around the visible region. Thumbnails remain cached in memory.
+- Three card sizes, optional filters and collections, newest/oldest ordering.
+- Persistent compact/expanded layout and opening collection; fallback to history if the collection no longer exists.
+- Space preview outside text input, Alt+arrow navigation and Escape return; shelf selection kept visible.
+- 1.1–1.6 roadmap, FR/EN validation and installation guides.
+- GitHub-compatible RPM filenames before checksum generation.
+- 75 tests passed on the functional code. Beta for Fedora 44 COSMIC testing: focus, physical scrolling, scaling changes and real-world performance still need validation. No data schema changes.
+
 ## 1.0.0-rc.1 — Stable release candidate
 
 - Expanded popup shelf: one row of previews, integrated search, filter counts, pagination and actions via right-click or the preview button. Compact view retained.

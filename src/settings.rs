@@ -60,6 +60,11 @@ pub struct Settings {
     pub keep_open: bool,
     pub ocr_indexing: bool,
     pub popup_expanded: bool,
+    pub card_size: u8,
+    pub show_filters: bool,
+    pub show_collections: bool,
+    pub oldest_first: bool,
+    pub default_collection: String,
     pub ui_language: &'static str,
 }
 
@@ -73,6 +78,11 @@ impl Default for Settings {
             keep_open: false,
             ocr_indexing: false,
             popup_expanded: false,
+            card_size: 1,
+            show_filters: true,
+            show_collections: true,
+            oldest_first: false,
+            default_collection: String::new(),
             ui_language: "auto",
         }
     }
@@ -102,6 +112,21 @@ impl Settings {
             };
             let value = value.trim();
             match key.trim() {
+                "card-size" => {
+                    if let Ok(n) = value.parse::<u8>() {
+                        if n < 3 {
+                            settings.card_size = n;
+                        }
+                    }
+                }
+                "show-filters" => settings.show_filters = value != "false",
+                "show-collections" => settings.show_collections = value != "false",
+                "oldest-first" => settings.oldest_first = value == "true",
+                "default-collection" => {
+                    if let Ok(name) = serde_json::from_str::<String>(value) {
+                        settings.default_collection = name.chars().take(40).collect();
+                    }
+                }
                 "density" => {
                     if let Some(density) = Density::parse(value) {
                         settings.density = density;
@@ -142,8 +167,17 @@ impl Settings {
         settings
     }
     pub fn render(&self) -> String {
-        format!(
-            "# Préférences de Nebula Paste. Les valeurs inconnues sont ignorées.\n\
+        let extra = format!(
+            "card-size = {}\nshow-filters = {}\nshow-collections = {}\noldest-first = {}\ndefault-collection = {}\n",
+            self.card_size,
+            self.show_filters,
+            self.show_collections,
+            self.oldest_first,
+            serde_json::to_string(&self.default_collection).unwrap()
+        );
+        extra
+            + &format!(
+                "# Préférences de Nebula Paste. Les valeurs inconnues sont ignorées.\n\
              density = {}\n\
              ocr-language = {}\n\
              retention-days = {}\n\
@@ -152,15 +186,15 @@ impl Settings {
              ui-language = {}\n\
              ocr-indexing = {}\n\
              popup-expanded = {}\n",
-            self.density.key(),
-            self.ocr_language,
-            self.retention_days,
-            self.paste_mode,
-            self.keep_open,
-            self.ui_language,
-            self.ocr_indexing,
-            self.popup_expanded
-        )
+                self.density.key(),
+                self.ocr_language,
+                self.retention_days,
+                self.paste_mode,
+                self.keep_open,
+                self.ui_language,
+                self.ocr_indexing,
+                self.popup_expanded
+            )
     }
     /// Écrit dans un fichier temporaire puis renomme : une interruption ne laisse
     /// jamais des préférences tronquées à la place des précédentes.
@@ -228,6 +262,9 @@ mod tests {
         assert_eq!(settings.ocr_language, "fra+eng");
         assert_eq!(settings.retention_days, 0);
         assert_eq!(settings.paste_mode, 0);
+        assert_eq!(Settings::parse("card-size = 99").card_size, 1);
+        assert!(settings.show_filters);
+        assert!(settings.show_collections);
     }
 
     #[test]
@@ -238,6 +275,11 @@ mod tests {
         settings.density = Density::Compact;
         settings.paste_mode = 2;
         settings.popup_expanded = true;
+        settings.card_size = 2;
+        settings.show_filters = false;
+        settings.show_collections = false;
+        settings.oldest_first = true;
+        settings.default_collection = "Équipe = \"réseau\"".into();
         settings.cycle_retention();
         settings.cycle_ocr_language();
         settings.save(&path).unwrap();

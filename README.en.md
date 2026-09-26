@@ -1,6 +1,6 @@
 # Nebula Paste — COSMIC applet
 
-**1.0.0-rc.1 — stable release candidate.** Native applet blur fixed; final validation in progress. [Installation and upgrades](docs/INSTALL.en.md) · [1.0 validation](docs/TESTING-1.0.en.md).
+**1.1.0-beta.1 — continuous shelf and display preferences.** Beta for Fedora COSMIC testing. [Install the beta](docs/INSTALL-1.1.en.md) · [1.1 validation](docs/TESTING-1.1.en.md).
 
 
 [Français](README.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)

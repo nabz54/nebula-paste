@@ -2,38 +2,37 @@
 
 [English](ROADMAP.en.md)
 
-Les versions ci-dessous sont des objectifs, pas des fonctionnalités déjà livrées ni des dates promises. La 0.7 reste une bêta ; sa validation sur Fedora COSMIC continue avant une version stable.
+Objectifs approuvés le 26 septembre 2026, inspirés des parcours Supaste et adaptés à Rust/COSMIC. Les numéros ci-dessous sont des objectifs sans date promise. La 1.0.0-rc.1 est publiée ; la 1.0 stable dépend des essais réels décrits dans [TESTING-1.0](TESTING-1.0.md).
 
-## 0.8 — Identité et modèles réutilisables
+Trois surfaces partagent données et actions : applet compacte pour l’accès rapide, bandeau élargi pour le parcours visuel, fenêtre complète pour l’organisation. L’identité 2A et le thème natif COSMIC restent communs.
 
-**Implémenté en 0.8.0-beta.1 :** identité 2A, modèles persistants, édition, champs littéraux, recherche et import/export avec gestion des conflits. Les essais interactifs Fedora COSMIC restent à effectuer avant une version stable.
+| Version | Objectif | Périmètre |
+|---|---|---|
+| 1.0 stable | Socle fiable | Validation RC, flou, focus, multi-écran, migration RPM, sauvegarde et OCR. Mesures de référence. |
+| 1.1 | Navigation et rendu | Défilement continu, cartes réglables, filtres/collections masquables, aperçu Espace, navigation clavier, vue/collection et tri par défaut. |
+| 1.2 | Collections et notes | Vues liste/cartes, notes persistantes distinctes de l’historique, édition, collections réordonnables, sélection/déplacement groupés, recherche commune. |
+| 1.3 | Actions et raccourcis | Raccourcis internes/globaux et favoris, conflits, transformations de texte, assemblage, copie séquentielle, comportement au clic. |
+| 1.4 | Capture et images | Capture de zone + OCR, pipette, extraction de texte, redimensionnement/conversion. Prototype de lecture vidéo muette et désactivable dans l’aperçu ouvert. |
+| 1.5 | Tableaux et automatisation | Kanban, colonnes éditables, règles locales de classement avec aperçu/annulation ; expiration selon dernière utilisation avec exclusions. |
+| 1.6 | Distribution et consolidation | Notification de version, parcours de mise à jour adapté au canal Fedora, performances, accessibilité et validation complète. |
 
-**Fonctions livrées :**
+## Livraison 1.1
 
-1. Stockage des modèles séparé des copies : identifiant stable, titre, corps, collection facultative, dates de création/modification. Migration additive ; rétention et vidage de l’historique sans effet sur les modèles.
-2. Vue Modèles accessible depuis le popup et la fenêtre complète : créer, modifier, rechercher dans titre/corps, classer, supprimer avec confirmation. Création depuis une copie texte sans modifier l’original.
-3. Champs explicites `{{nom}}`, `{{date}}`, `{{serveur}}`, `{{ip}}` : formulaire avant copie, même valeur pour chaque occurrence, aperçu final, valeurs non enregistrées par défaut. `date` reste un champ à remplir pour cette première version. Aucune expansion de shell ni exécution de commande.
-4. Import/export JSON versionné : modèles uniquement, limites de taille et de nombre, validation complète avant écriture, aperçu des conflits, aucune substitution silencieuse. Sauvegarde atomique à l’export et transaction à l’import.
-5. Libellés, aide, changelog et guide de test en français et anglais.
+Premier lot en développement : bandeau défilant avec construction des widgets proches de la zone visible ; tailles petite/moyenne/grande ; filtres/collections masquables ; aperçu Espace lorsque l’événement n’est pas consommé par un champ ; navigation Alt+flèches ; réglages de vue, collection et ordre persistants. La liste compacte et la fenêtre complète conservent leur pagination.
 
-**Critères de sortie :** tests de migration et conservation de l’historique ; CRUD persistant ; champs répétés/manquants/Unicode et syntaxe incorrecte ; aller-retour import/export et échec sans import partiel ; recherche accentuée ; navigation clavier et rendu compact/élargi sur COSMIC. La nouvelle identité doit rester lisible avec les thèmes et tailles de panneau utilisés.
+Les miniatures existantes restent mises en cache en mémoire : la virtualisation des widgets ne constitue pas encore un décodage d’images à la demande. Mesurer mémoire, ouverture, recherche et défilement à 100 et 500 copies avant de décider d’un cache borné supplémentaire. L’ordre configurable commence par récent/ancien ; le réordonnancement manuel attend le travail sur les collections.
 
-## 0.9 — Fiabilité et maîtrise des données
+Validation : [TESTING-1.1](TESTING-1.1.md). Les captures hors session ne valident ni le focus Wayland ni le flou du compositeur. Pas de déclaration de stabilité sur la seule base des tests unitaires.
 
-**Implémenté dans la branche 0.9 bêta :** sauvegarde/restauration, diagnostic, impact de rétention, transparence, redimensionnement, isolation clavier et mesures reproductibles. Les critères de validation COSMIC réelle restent à vérifier.
+## Principes de données
 
-**Proposé :** consolider placement, redimensionnement, focus clavier et changements de thème ; mesurer la recherche et l’OCR sur un historique rempli ; sauvegarder/restaurer l’historique avec aperçu et gestion des conflits ; clarifier les réglages de rétention ; exporter un diagnostic excluant le contenu des copies et des modèles.
+- Historique périssable séparé des notes/modèles conservés ; les favoris ne disparaissent pas par rétention.
+- Une collection contient des éléments ; ses colonnes Kanban sont une organisation supplémentaire. Changer de vue ne duplique pas les données.
+- Les règles automatiques locales doivent expliquer le classement, annoncer les conflits et permettre une correction. L’application source ne sera proposée que si l’information est fiable.
+- Chaque migration est additive ou explicitement versionnée, avec sauvegarde et tests de restauration.
 
-**Critères de sortie :** tests de restauration interrompue ou invalide, conservation des favoris et collections, mesures reproductibles, matrice Fedora/COSMIC documentée, aucun blocage connu sur les parcours principaux.
+## Prototypes avant engagement
 
-## 1.0 — Version stable
+Collage direct et séquentiel, raccourcis globaux, capture d’écran et pipette : vérifier les capacités COSMIC/Wayland et définir les replis. La copie suivie de Ctrl+V reste disponible. Mise à jour « un clic » : choisir le canal Fedora et son mécanisme d’authentification avant de promettre une installation intégrée. Bandeau flottant, expansion textuelle et suppression locale du fond d’image : hors versions engagées tant que faisabilité, ressources et qualité ne sont pas validées.
 
-**En préparation : 1.0.0-rc.1.** Correctif du flou des popups confirmé par utilisateur, version distincte, publication RPM après tests et guides FR/EN de migration. [Validation restante](TESTING-1.0.md).
-
-**Proposé :** installation et mise à jour RPM reproductibles, migration préservant les données, documentation FR/EN complète, dépannage et désinstallation documentés, versions Fedora/COSMIC effectivement testées et annoncées.
-
-**Critères de sortie :** plusieurs semaines d’usage réel, aucun défaut bloquant connu, installation neuve et mise à niveau vérifiées, limitations publiées. La date dépend des essais, pas d’une échéance arbitraire.
-
-## Après 1.0
-
-Synchronisation et extensions éventuelles : à décider séparément. Aucun service distant n’est requis par cette roadmap.
+Synchronisation, services distants et IA ne sont pas requis. Corrections, performances, accessibilité et documentation FR/EN font partie de chaque livraison.

@@ -2,6 +2,26 @@
 use super::*;
 
 impl App {
+    pub(super) fn shelf_card_width(&self) -> f32 {
+        [170.0, 220.0, 280.0][self.settings.card_size as usize]
+    }
+    pub(super) fn reveal_shelf_selection(&mut self) -> Task<cosmic::Action<Message>> {
+        let left = self.selected as f32 * (self.shelf_card_width() + 10.0);
+        let available = self.width() - 24.0;
+        if left < self.shelf_offset {
+            self.shelf_offset = left;
+        } else if left + self.shelf_card_width() > self.shelf_offset + available {
+            self.shelf_offset = left + self.shelf_card_width() - available;
+        }
+        iced::widget::scrollable::scroll_to(
+            self.shelf_id.clone(),
+            iced::widget::scrollable::AbsoluteOffset {
+                x: self.shelf_offset,
+                y: 0.0,
+            },
+        )
+    }
+
     pub(super) fn ribbon_visible(&self) -> bool {
         self.is_popup()
             && !self.compact_popup()
@@ -38,9 +58,13 @@ impl App {
             .push(widget::Space::new().width(Length::Fill))
             .push(
                 widget::text(format!(
-                    "{}⌃{}",
+                    "{}{}",
                     if clip.pinned { "★ · " } else { "" },
-                    index + 1
+                    if index < MAX_SHORTCUTS {
+                        format!("⌃{}", index + 1)
+                    } else {
+                        String::new()
+                    }
                 ))
                 .size(11),
             )
@@ -182,17 +206,27 @@ impl App {
             ))
             .width(Length::Fill);
         let filtered = self.filtered();
-        let page_size = self.page_size();
-        let pages = filtered.len().max(1).div_ceil(page_size);
-        let width = (self.width() - 24.0 - (page_size - 1) as f32 * 10.0) / page_size as f32;
-        let mut cards = widget::row([]).spacing(10);
-        for (index, clip) in filtered
-            .iter()
-            .skip(self.page * page_size)
-            .take(page_size)
-            .enumerate()
-        {
-            cards = cards.push(self.ribbon_card(clip, index, width));
+        let width = self.shelf_card_width();
+        let stride = width + 10.0;
+        // Only construct previews around the visible region. Spacers preserve the full scroll extent.
+        let start = ((self.shelf_offset / stride) as usize)
+            .saturating_sub(1)
+            .min(filtered.len());
+        let end =
+            (start + ((self.width() - 24.0) / stride).ceil() as usize + 3).min(filtered.len());
+        let mut cards = widget::row([]).spacing(0);
+        if start > 0 {
+            cards = cards.push(widget::Space::new().width(start as f32 * stride));
+        }
+        for index in start..end {
+            cards = cards.push(self.ribbon_card(filtered[index], index, width));
+            if index + 1 < filtered.len() {
+                cards = cards.push(widget::Space::new().width(10));
+            }
+        }
+        if end < filtered.len() {
+            cards = cards
+                .push(widget::Space::new().width((filtered.len() - end) as f32 * stride - 10.0));
         }
         let shelf: Element<'_, Message> = if filtered.is_empty() {
             widget::container(
@@ -208,6 +242,8 @@ impl App {
             .into()
         } else {
             widget::scrollable(cards)
+                .id(self.shelf_id.clone())
+                .on_scroll(|viewport| Message::ShelfScrolled(viewport.absolute_offset().x))
                 .direction(iced::widget::scrollable::Direction::Horizontal(
                     iced::widget::scrollable::Scrollbar::default(),
                 ))
@@ -215,7 +251,7 @@ impl App {
                 .height(184)
                 .into()
         };
-        let selected = filtered.get(self.page * page_size + self.selected);
+        let selected = filtered.get(self.selected);
         let footer = widget::row([])
             .push(
                 widget::button::text(tr!("Aperçu / actions", "Preview / actions"))
@@ -228,13 +264,23 @@ impl App {
             .push(widget::Space::new().width(Length::Fill))
             .push(
                 widget::button::text("←")
-                    .on_press_maybe((self.page > 0).then_some(Message::Page(false))),
+                    .on_press_maybe((self.selected > 0).then_some(Message::Move(false))),
             )
-            .push(widget::text(format!("{} / {pages}", self.page + 1)).size(11))
             .push(
-                widget::button::text("→")
-                    .on_press_maybe((self.page + 1 < pages).then_some(Message::Page(true))),
+                widget::text(format!(
+                    "{} / {}",
+                    if filtered.is_empty() {
+                        0
+                    } else {
+                        self.selected + 1
+                    },
+                    filtered.len()
+                ))
+                .size(11),
             )
+            .push(widget::button::text("→").on_press_maybe(
+                (self.selected + 1 < filtered.len()).then_some(Message::Move(true)),
+            ))
             .align_y(iced::Alignment::Center)
             .spacing(4);
         let status = self
@@ -244,8 +290,8 @@ impl App {
             .unwrap_or(&self.status);
         let mut content = widget::column([])
             .push(header)
-            .push(tabs)
-            .push(filters)
+            .push_maybe(self.settings.show_collections.then_some(tabs))
+            .push_maybe(self.settings.show_filters.then_some(filters))
             .push(shelf)
             .push(footer)
             .push(widget::text(status).size(11))

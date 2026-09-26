@@ -22,5 +22,16 @@ tar -czf "$rpm_stage/rpmbuild/SOURCES/nebula-paste-cargo-vendor.tar.gz" vendor-c
 rpmbuild -ba --define "_topdir $rpm_stage/rpmbuild" packaging/nebula-paste.spec
 find "$rpm_stage/rpmbuild/RPMS" "$rpm_stage/rpmbuild/SRPMS" -type f -name '*.rpm' -exec cp -- {} "$output_dir/" \;
 cd "$output_dir"
+# GitHub sanitizes '~' in asset names. Normalize before hashing so downloads
+# and SHA256SUMS use the same names; the RPM's internal Version is unchanged.
+python3 - <<'PYTHON'
+from pathlib import Path
+for package in Path('.').glob('*.rpm'):
+    if '~' in package.name:
+        destination = package.with_name(package.name.replace('~', '.'))
+        if destination.exists():
+            raise SystemExit(f'Refusing to overwrite {destination}')
+        package.rename(destination)
+PYTHON
 sha256sum -- *.rpm > SHA256SUMS
 printf 'Packages: %s\n' "$output_dir"

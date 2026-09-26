@@ -2,6 +2,16 @@
 
 [English](CHANGELOG.md)
 
+## 1.1.0-beta.1 — Navigation et personnalisation du bandeau
+
+- Défilement horizontal continu ; widgets de cartes construits autour de la zone visible. Les miniatures restent en cache mémoire.
+- Trois tailles de cartes, filtres et collections masquables, tri récent/ancien.
+- Vue compacte/élargie et collection d’ouverture persistantes ; retour à l’historique si la collection n’existe plus.
+- Aperçu avec Espace hors champ de saisie, navigation Alt+flèches et retour Échap ; sélection révélée dans le bandeau.
+- Roadmap 1.1–1.6, guides de validation et installation FR/EN.
+- Noms des RPM compatibles avec GitHub avant génération des empreintes.
+- 75 tests réussis sur le code fonctionnel. Bêta à tester sur Fedora 44 COSMIC : focus, défilement physique, changements d’échelle et performances réelles restent à valider. Aucun changement de schéma des données.
+
 ## 1.0.0-rc.1 — Candidate à la version stable
 
 - Vue élargie en bandeau : une rangée d’aperçus, recherche intégrée, compteurs de filtres, pagination et actions au clic droit ou via le bouton d’aperçu. Vue compacte conservée.

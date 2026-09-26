@@ -2065,7 +2065,7 @@ impl cosmic::Application for App {
                         .ok()
                         .filter(|n| (1..=MAX_SHORTCUTS).contains(n))
                         .map(|n| Message::Choose(n - 1)),
-                    Key::Named(Named::Space)
+                    Key::Character(" ")
                         if status == iced::event::Status::Ignored
                             && !mods.control()
                             && !mods.alt()
@@ -2083,6 +2083,18 @@ impl cosmic::Application for App {
         Subscription::batch(subscriptions)
     }
     fn update(&mut self, message: Message) -> Task<cosmic::Action<Message>> {
+        let was_ribbon = self.ribbon_visible();
+        let reset_shelf = matches!(
+            &message,
+            Message::Search(_)
+                | Message::Filter(_)
+                | Message::Favorites(_)
+                | Message::Category(_)
+                | Message::SortOrder
+                | Message::CardSize
+                | Message::ShowFilters
+                | Message::Viewport(_)
+        );
         if (self.templates_open
             || self.settings_open
             || self.collections_open
@@ -2362,6 +2374,7 @@ impl cosmic::Application for App {
                 self.settings.popup_expanded = !self.settings.popup_expanded;
                 self.save_settings();
                 self.viewport = self.ideal_width();
+                self.reset();
                 self.refresh();
                 self.dragging = false;
                 let Some(parent) = self.core.main_window_id() else {
@@ -2609,7 +2622,11 @@ impl cosmic::Application for App {
             }
             Message::Viewport(width) => {
                 if width.is_finite() && (self.viewport - width).abs() > 1.0 {
+                    let was_compact = self.compact_popup();
                     self.viewport = width;
+                    if was_compact != self.compact_popup() {
+                        self.reset();
+                    }
                     self.refresh();
                 }
             }
@@ -3116,6 +3133,9 @@ impl cosmic::Application for App {
                     return self.copy(&id);
                 }
             }
+        }
+        if self.ribbon_visible() && (reset_shelf || !was_ribbon) {
+            return self.reveal_shelf_selection();
         }
         Task::none()
     }

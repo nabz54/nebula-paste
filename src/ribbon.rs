@@ -16,8 +16,8 @@ impl App {
         iced::widget::scrollable::scroll_to(
             self.shelf_id.clone(),
             iced::widget::scrollable::AbsoluteOffset {
-                x: self.shelf_offset,
-                y: 0.0,
+                x: Some(self.shelf_offset),
+                y: Some(0.0),
             },
         )
     }

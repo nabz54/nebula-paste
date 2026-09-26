@@ -2307,10 +2307,11 @@ impl cosmic::Application for App {
                 self.shelf_offset = x.max(0.0);
                 if self.ribbon_visible() {
                     let stride = self.shelf_card_width() + 10.0;
-                    let first = (self.shelf_offset / stride).ceil() as usize;
-                    let last =
-                        ((self.shelf_offset + self.width() - 24.0) / stride).floor() as usize;
-                    if self.selected < first || self.selected >= last {
+                    let left = self.selected as f32 * stride;
+                    if left + self.shelf_card_width() <= self.shelf_offset
+                        || left >= self.shelf_offset + self.width() - 24.0
+                    {
+                        let first = (self.shelf_offset / stride).ceil() as usize;
                         self.selected = first.min(self.filtered().len().saturating_sub(1));
                     }
                 }
@@ -3438,6 +3439,9 @@ mod tests {
         }
         assert_eq!(app.selected, 60);
         assert!(app.shelf_offset > 0.0);
+        // A scroll notification after revealing the rightmost card must not move selection.
+        let _ = app.update(Message::ShelfScrolled(app.shelf_offset));
+        assert_eq!(app.selected, 60);
         let target = app.target();
         let _ = app.update(Message::PreviewSelected);
         assert_eq!(app.detail, target);
@@ -3449,6 +3453,20 @@ mod tests {
         assert!(app.target().is_none());
         let _ = app.update(Message::Move(true));
         assert_eq!(app.selected, 0);
+    }
+
+    #[test]
+    fn opening_collection_falls_back_when_deleted() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        app.render_ribbon();
+        app.collections.push("Network".into());
+        app.settings.default_collection = "Network".into();
+        let _ = app.update(Message::Toggle);
+        assert_eq!(app.category, "Network");
+        app.popup = None;
+        app.collections.retain(|c| c != "Network");
+        let _ = app.update(Message::Toggle);
+        assert!(app.category.is_empty());
     }
 
     #[test]

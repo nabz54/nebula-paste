@@ -426,56 +426,89 @@ impl State {
             body = body.push(widget::text(&self.notice).size(12));
         }
         let mut cards = Vec::new();
+        let available = if width >= 600.0 { width - 236.0 } else { width };
+        let columns = ((available + 10.0) / 240.0).floor().max(1.0);
+        let card_width = ((available - (columns - 1.0) * 10.0) / columns - 2.0).max(200.0);
         for e in filtered.iter().skip(self.page * 40).take(40) {
-            let mut card = widget::column([])
-                .spacing(6)
-                .push(widget::text(format!("{} · {}", e.label(), e.collection)).size(11))
-                .push(widget::text(e.title.chars().take(80).collect::<String>()).size(15));
-            if self.cards {
-                if let Some(image) = images.get(&e.id).filter(|_| e.kind == 0) {
-                    card = card.push(
-                        widget::image(image.clone())
-                            .height(85)
-                            .width(Length::Fill)
-                            .content_fit(cosmic::iced::ContentFit::Contain),
-                    );
-                } else {
-                    card = card
-                        .push(widget::text(e.body.chars().take(150).collect::<String>()).size(12));
-                }
-            }
-            let mut actions = widget::column([]).spacing(4).push(
-                widget::button::text(if e.kind == 0 {
-                    tr!("Copier", "Copy")
-                } else if e.kind == 1 {
-                    tr!("Modifier", "Edit")
-                } else {
-                    tr!("Utiliser", "Use")
+            let label = if e.collection.is_empty() {
+                e.label().to_owned()
+            } else {
+                format!("{} · {}", e.label(), e.collection)
+            };
+            let title = e.title.chars().take(80).collect::<String>();
+            let mut actions: Vec<Element<'a, Message>> = vec![
+                widget::button::text(match e.kind {
+                    0 => tr!("Copier", "Copy"),
+                    1 => tr!("Modifier", "Edit"),
+                    _ => tr!("Utiliser", "Use"),
                 })
-                .on_press(Message::Open(e.kind, e.id.clone())),
-            );
+                .on_press(Message::Open(e.kind, e.id.clone()))
+                .into(),
+            ];
             if let Some(key) = e.key() {
-                actions = actions.push(
+                actions.push(
                     widget::button::text(if self.selected.contains(&key) {
                         tr!("Sélectionné", "Selected")
                     } else {
                         tr!("Sélectionner", "Select")
                     })
-                    .on_press(Message::Select(key)),
+                    .on_press(Message::Select(key))
+                    .into(),
                 );
             }
-            card = card.push(actions);
             if e.can_convert {
-                card = card.push(
-                    widget::button::text(tr!("Créer une note", "Create note"))
-                        .on_press(Message::Convert(e.id.clone())),
+                actions.push(
+                    widget::button::text("+ Note")
+                        .on_press(Message::Convert(e.id.clone()))
+                        .into(),
                 );
             }
+            let actions = widget::flex_row(actions).spacing(4);
+            let content: Element<'a, Message> = if self.cards {
+                let preview: Element<'a, Message> =
+                    if let Some(image) = images.get(&e.id).filter(|_| e.kind == 0) {
+                        widget::image(image.clone())
+                            .height(96)
+                            .width(Length::Fill)
+                            .content_fit(cosmic::iced::ContentFit::Contain)
+                            .into()
+                    } else {
+                        widget::text(e.body.chars().take(150).collect::<String>())
+                            .size(12)
+                            .into()
+                    };
+                widget::column([])
+                    .spacing(6)
+                    .push(widget::text(label).size(11))
+                    .push(widget::container(widget::text(title).size(15)).height(42))
+                    .push(widget::container(preview).height(96))
+                    .push(actions)
+                    .into()
+            } else {
+                let info = widget::column([])
+                    .spacing(4)
+                    .push(widget::text(label).size(11))
+                    .push(widget::text(title).size(14));
+                if width >= 720.0 {
+                    widget::row([])
+                        .spacing(8)
+                        .align_y(cosmic::iced::Alignment::Center)
+                        .push(widget::container(info).width(Length::Fill))
+                        .push(widget::container(actions).width(270))
+                        .into()
+                } else {
+                    widget::column([])
+                        .spacing(4)
+                        .push(info)
+                        .push(actions)
+                        .into()
+                }
+            };
             cards.push(
-                widget::container(card)
+                widget::container(content)
                     .padding(12)
                     .width(if self.cards {
-                        Length::Fixed(if width < 600.0 { width - 60.0 } else { 230.0 })
+                        Length::Fixed(card_width)
                     } else {
                         Length::Fill
                     })

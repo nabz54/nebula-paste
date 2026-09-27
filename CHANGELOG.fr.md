@@ -2,6 +2,17 @@
 
 [English](CHANGELOG.md)
 
+## 1.2.0-beta.1 — Collections et notes (en préparation)
+
+- Bibliothèque commune avec recherche dans les copies, notes et modèles.
+- Notes textuelles persistantes : création, édition, conversion d’une copie et export/import JSON distinct.
+- Vues cartes/liste mémorisées par collection et ordre des collections personnalisable.
+- Sélection multiple des copies et notes, classement groupé, suppression confirmée et annulation de la dernière opération groupée.
+- Conservation des notes lors du vidage et de la rétention de l’historique ; protection des brouillons lors du changement de note.
+- Tests de migration, limites d’import, conservation des données et annulation transactionnelle ; aperçus natifs sombre/clair.
+
+Les modèles ne participent pas aux opérations groupées. L’annulation reste en mémoire jusqu’à la prochaine opération groupée ou l’arrêt. Les exports séparés ne sauvegardent pas l’ordre et la vue des collections. Le flou et le focus doivent encore être testés dans une session COSMIC.
+
 ## 1.1.0-beta.1 — Navigation et personnalisation du bandeau
 
 - Défilement horizontal continu ; widgets de cartes construits autour de la zone visible. Les miniatures restent en cache mémoire.

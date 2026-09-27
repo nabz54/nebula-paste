@@ -8,3 +8,6 @@ pub mod i18n;
 pub mod templates;
 
 pub mod backup;
+
+pub mod notes;
+pub mod workspace;

@@ -26,6 +26,8 @@ impl App {
         self.is_popup()
             && !self.compact_popup()
             && !self.templates_open
+            && !self.notes_open
+            && !self.workspace_open
             && !self.settings_open
             && !self.collections_open
             && !self.pause_menu
@@ -182,6 +184,10 @@ impl App {
             .push(
                 widget::button::text(tr!("Modèles", "Templates"))
                     .on_press(Message::Templates(true)),
+            )
+            .push(
+                widget::button::text(tr!("Bibliothèque", "Library"))
+                    .on_press(Message::Workspace(true)),
             );
         let tabs = widget::scrollable(tabs)
             .direction(iced::widget::scrollable::Direction::Horizontal(

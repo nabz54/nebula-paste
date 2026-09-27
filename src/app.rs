@@ -62,6 +62,10 @@ pub struct App {
     clips: Vec<Clip>,
     collections: Vec<String>,
     collections_open: bool,
+    notes_open: bool,
+    notes: crate::note_ui::State,
+    workspace_open: bool,
+    workspace: crate::workspace_ui::State,
     templates_open: bool,
     templates: crate::template_ui::State,
     data: crate::data_ui::State,
@@ -118,6 +122,11 @@ struct Undo {
 pub enum Message {
     Toggle,
     ReloadAppearance,
+    Notes(bool),
+    Note(crate::note_ui::Message),
+    NoteFromClip(String),
+    Workspace(bool),
+    WorkspaceEvent(crate::workspace_ui::Message),
     Templates(bool),
     Template(crate::template_ui::Message),
     Data(crate::data_ui::Message),
@@ -289,7 +298,7 @@ impl App {
         self.refresh();
     }
     fn sidebar_width(&self) -> f32 {
-        if !self.is_popup() && self.width() >= 720.0 {
+        if !self.notes_open && !self.workspace_open && !self.is_popup() && self.width() >= 720.0 {
             192.0
         } else {
             0.0
@@ -623,6 +632,16 @@ impl App {
                         rgba.into_raw(),
                     ),
                 );
+            }
+        }
+        if let Some(store) = &self.store {
+            self.notes.refresh(store);
+            self.templates.refresh(store);
+            if let Err(e) = self
+                .workspace
+                .refresh(store, &self.clips, &self.image_index)
+            {
+                self.workspace.notice = e;
             }
         }
         let page_size = self.page_size();
@@ -1227,6 +1246,10 @@ impl cosmic::Application for App {
             clips: vec![],
             collections: vec![],
             collections_open: false,
+            notes_open: false,
+            notes: crate::note_ui::State::default(),
+            workspace_open: false,
+            workspace: crate::workspace_ui::State::default(),
             templates_open: false,
             templates: crate::template_ui::State::default(),
             data: crate::data_ui::State::default(),
@@ -1282,6 +1305,17 @@ impl cosmic::Application for App {
                 tr!("Adresse de test", "Test address"),
                 "192.0.2.10",
                 "",
+            );
+            let _ = store.save_note(
+                None,
+                tr!("Idées pour le projet", "Project ideas"),
+                tr!(
+                    "Organiser les captures et garder les commandes utiles.
+Les notes restent disponibles après le vidage de l’historique.",
+                    "Organize captures and keep useful commands.
+Notes remain available after clearing history."
+                ),
+                tr!("Travail", "Work"),
             );
             app.templates.refresh(store);
         }
@@ -1424,18 +1458,29 @@ impl cosmic::Application for App {
             );
         }
         layout = layout.push(
-            widget::row([])
-                .spacing(8)
-                .push(
-                    widget::button::text(tr!("Copies", "Clips"))
-                        .class(skin::button(!self.templates_open, 8.0, false))
-                        .on_press(Message::Templates(false)),
-                )
-                .push(
-                    widget::button::text(tr!("Modèles", "Templates"))
-                        .class(skin::button(self.templates_open, 8.0, false))
-                        .on_press(Message::Templates(true)),
-                ),
+            widget::flex_row(vec![
+                widget::button::text(tr!("Copies", "Clips"))
+                    .class(skin::button(
+                        !self.templates_open && !self.notes_open && !self.workspace_open,
+                        8.0,
+                        false,
+                    ))
+                    .on_press(Message::Templates(false))
+                    .into(),
+                widget::button::text(tr!("Modèles", "Templates"))
+                    .class(skin::button(self.templates_open, 8.0, false))
+                    .on_press(Message::Templates(true))
+                    .into(),
+                widget::button::text(tr!("Notes", "Notes"))
+                    .class(skin::button(self.notes_open, 8.0, false))
+                    .on_press(Message::Notes(true))
+                    .into(),
+                widget::button::text(tr!("Bibliothèque", "Library"))
+                    .class(skin::button(self.workspace_open, 8.0, false))
+                    .on_press(Message::Workspace(true))
+                    .into(),
+            ])
+            .spacing(6),
         );
         if paused {
             layout = layout.push(
@@ -1511,6 +1556,20 @@ impl cosmic::Application for App {
         if self.collections_open {
             layout = layout.push(self.view_collections());
         }
+        if self.notes_open {
+            layout = layout.push(
+                self.notes
+                    .view(&self.collections, compact)
+                    .map(Message::Note),
+            );
+        }
+        if self.workspace_open {
+            layout = layout.push(
+                self.workspace
+                    .view(self.width() - 36.0, &self.thumbnails)
+                    .map(Message::WorkspaceEvent),
+            );
+        }
         if self.templates_open {
             layout = layout.push(
                 self.templates
@@ -1518,7 +1577,12 @@ impl cosmic::Application for App {
                     .map(Message::Template),
             );
         }
-        if !self.settings_open && !self.collections_open && !self.templates_open {
+        if !self.settings_open
+            && !self.collections_open
+            && !self.templates_open
+            && !self.notes_open
+            && !self.workspace_open
+        {
             if let Some(clip) = self
                 .detail
                 .as_ref()
@@ -2096,6 +2160,8 @@ impl cosmic::Application for App {
                 | Message::Viewport(_)
         );
         if (self.templates_open
+            || self.notes_open
+            || self.workspace_open
             || self.settings_open
             || self.collections_open
             || self.clear_confirm
@@ -2206,7 +2272,150 @@ impl cosmic::Application for App {
                     _ => {}
                 }
             }
+            Message::Notes(open) => {
+                self.notes_open = open;
+                self.templates_open = false;
+                self.workspace_open = false;
+                self.settings_open = false;
+                self.collections_open = false;
+                self.detail = None;
+                if !open {
+                    self.notes.clear_values();
+                }
+                if let Some(store) = &self.store {
+                    self.notes.refresh(store);
+                }
+            }
+            Message::NoteFromClip(id) => {
+                if let Some(c) = self
+                    .clips
+                    .iter()
+                    .find(|c| c.id == id && !matches!(c.kind, Kind::Image | Kind::Files))
+                {
+                    self.notes.from_clip(&c.title, &c.text, &c.category);
+                    self.notes_open = true;
+                    self.templates_open = false;
+                    self.workspace_open = false;
+                    self.detail = None;
+                    if let Some(store) = &self.store {
+                        self.notes.refresh(store);
+                    }
+                }
+            }
+            Message::Note(msg) => {
+                if self.demo
+                    && matches!(
+                        msg,
+                        crate::note_ui::Message::Import
+                            | crate::note_ui::Message::Export
+                            | crate::note_ui::Message::Copy
+                    )
+                {
+                    self.notes.note = tr!(
+                        "Démonstration : transfert désactivé",
+                        "Demo: transfer disabled"
+                    )
+                    .into();
+                    return Task::none();
+                }
+                let Some(store) = &self.store else {
+                    self.notes.note = tr!("Stockage indisponible", "Storage unavailable").into();
+                    return Task::none();
+                };
+                let changed = matches!(
+                    msg,
+                    crate::note_ui::Message::Save
+                        | crate::note_ui::Message::Delete
+                        | crate::note_ui::Message::ApplyImport
+                );
+                match self.notes.update(msg, store) {
+                    Err(e) => self.notes.note = e,
+                    Ok(crate::note_ui::Effect::None) => {
+                        if changed {
+                            self.refresh();
+                        }
+                    }
+                    Ok(crate::note_ui::Effect::Copy(text)) => {
+                        if self.copying {
+                            return Task::none();
+                        }
+                        match Clip::new(
+                            "text/plain;charset=utf-8".into(),
+                            text.into_bytes(),
+                            model::now(),
+                        ) {
+                            Err(e) => self.notes.note = e,
+                            Ok(clip) => {
+                                self.template_copy = true;
+                                self.copying = true;
+                                return Task::perform(
+                                    async move {
+                                        tokio::task::spawn_blocking(move || clipboard::copy(clip))
+                                            .await
+                                            .map_err(|e| e.to_string())
+                                            .and_then(|r| r)
+                                    },
+                                    |r| cosmic::Action::App(Message::Copied(r)),
+                                );
+                            }
+                        }
+                    }
+                    Ok(crate::note_ui::Effect::Import) => {
+                        return Task::perform(crate::note_ui::import_file(), |r| {
+                            cosmic::Action::App(Message::Note(crate::note_ui::Message::Imported(r)))
+                        });
+                    }
+                    Ok(crate::note_ui::Effect::Export(a)) => {
+                        return Task::perform(crate::note_ui::export_file(a), |r| {
+                            cosmic::Action::App(Message::Note(crate::note_ui::Message::Exported(r)))
+                        });
+                    }
+                }
+            }
+            Message::Workspace(open) => {
+                self.workspace_open = open;
+                self.notes_open = false;
+                self.templates_open = false;
+                self.settings_open = false;
+                self.collections_open = false;
+                self.detail = None;
+                self.refresh();
+            }
+            Message::WorkspaceEvent(msg) => {
+                use crate::workspace_ui::{Effect as E, Message as W};
+                let Some(store) = &self.store else {
+                    return Task::none();
+                };
+                let changed = matches!(&msg, W::Move | W::Delete | W::Undo | W::Order(_, _));
+                match self.workspace.update(msg, store) {
+                    Err(e) => self.workspace.notice = e,
+                    Ok(E::None) => {
+                        if changed {
+                            self.refresh();
+                        }
+                    }
+                    Ok(E::NewNote) => {
+                        let _ = self.update(Message::Notes(true));
+                        return self.update(Message::Note(crate::note_ui::Message::New));
+                    }
+                    Ok(E::Notes) => return self.update(Message::Notes(true)),
+                    Ok(E::Open(0, id)) => return self.update(Message::Copy(id)),
+                    Ok(E::Open(1, id)) => {
+                        let _ = self.update(Message::Notes(true));
+                        return self.update(Message::Note(crate::note_ui::Message::Edit(id)));
+                    }
+                    Ok(E::Open(_, id)) => {
+                        let _ = self.update(Message::Templates(true));
+                        return self
+                            .update(Message::Template(crate::template_ui::Message::Use(id)));
+                    }
+                    Ok(E::Convert(id)) => return self.update(Message::NoteFromClip(id)),
+                    Ok(E::Manage) => return self.update(Message::Collections(true)),
+                }
+            }
             Message::Templates(open) => {
+                self.notes_open = false;
+                self.workspace_open = false;
                 self.templates_open = open;
                 self.settings_open = false;
                 self.collections_open = false;
@@ -2389,6 +2598,8 @@ impl cosmic::Application for App {
             }
             Message::Collections(open) => {
                 self.templates_open = false;
+                self.notes_open = false;
+                self.workspace_open = false;
                 self.templates.clear_values();
                 self.collections_open = open;
                 self.settings_open = false;
@@ -2507,6 +2718,12 @@ impl cosmic::Application for App {
                 }
             }
             Message::FocusSearch => {
+                if self.notes_open {
+                    return widget::text_input::focus(self.notes.search_id.clone());
+                }
+                if self.workspace_open {
+                    return widget::text_input::focus(self.workspace.search_id.clone());
+                }
                 if self.templates_open {
                     return widget::text_input::focus(self.templates.search_id.clone());
                 }
@@ -2516,6 +2733,16 @@ impl cosmic::Application for App {
                 return widget::text_input::focus(self.search_id.clone());
             }
             Message::Escape => {
+                if self.notes_open {
+                    if self.notes.at_root() {
+                        return self.update(Message::Workspace(true));
+                    }
+                    return self.update(Message::Note(crate::note_ui::Message::Back));
+                }
+                if self.workspace_open {
+                    self.workspace_open = false;
+                    return Task::none();
+                }
                 if self.data.pending.take().is_some() {
                     self.data.policy = None;
                     return Task::none();
@@ -2610,6 +2837,8 @@ impl cosmic::Application for App {
             }
             Message::Settings(open) => {
                 self.templates_open = false;
+                self.notes_open = false;
+                self.workspace_open = false;
                 self.templates.clear_values();
                 self.settings_open = open;
                 self.collections_open = false;
@@ -2729,6 +2958,12 @@ impl cosmic::Application for App {
                 }
             }
             Message::OpenHistory => {
+                self.workspace_open = true;
+                self.notes_open = false;
+                self.templates_open = false;
+                self.settings_open = false;
+                self.collections_open = false;
+                self.detail = None;
                 if self.demo || self.history.is_some() {
                     return Task::none();
                 }
@@ -2751,7 +2986,7 @@ impl cosmic::Application for App {
             }
             Message::HistoryOpened(id) => {
                 if self.history == Some(id) {
-                    return widget::text_input::focus(self.search_id.clone());
+                    return widget::text_input::focus(self.workspace.search_id.clone());
                 }
             }
             Message::DragHistory => {
@@ -2760,6 +2995,9 @@ impl cosmic::Application for App {
                 }
             }
             Message::CloseView => {
+                if self.notes_open && !self.notes.at_root() {
+                    return self.update(Message::Note(crate::note_ui::Message::Back));
+                }
                 self.data.pending = None;
                 self.data.policy = None;
                 self.templates.clear_values();
@@ -2900,6 +3138,8 @@ impl cosmic::Application for App {
             }
             Message::Favorites(favorites) => {
                 self.templates_open = false;
+                self.notes_open = false;
+                self.workspace_open = false;
                 self.templates.clear_values();
                 self.collections_open = false;
                 self.settings_open = false;
@@ -2909,6 +3149,8 @@ impl cosmic::Application for App {
             }
             Message::Category(category) => {
                 self.templates_open = false;
+                self.notes_open = false;
+                self.workspace_open = false;
                 self.templates.clear_values();
                 self.collections_open = false;
                 self.settings_open = false;

@@ -51,6 +51,8 @@ impl Store {
             )
             .map_err(|e| e.to_string())?;
         crate::templates::initialize(&connection)?;
+        crate::notes::initialize(&connection)?;
+        crate::workspace::initialize(&connection)?;
         Ok(Self { connection })
     }
     pub fn load(&self) -> Result<Vec<Clip>, String> {
@@ -153,7 +155,7 @@ impl Store {
     pub fn collections(&self) -> Result<Vec<String>, String> {
         let mut stmt = self
             .connection
-            .prepare("SELECT name FROM collections ORDER BY name COLLATE NOCASE")
+            .prepare("SELECT name FROM collections ORDER BY COALESCE((SELECT position FROM collection_preferences WHERE collection=name),2147483647),name COLLATE NOCASE")
             .map_err(|e| e.to_string())?;
         stmt.query_map([], |r| r.get(0))
             .map_err(|e| e.to_string())?
@@ -197,6 +199,16 @@ impl Store {
             params![name, old],
         )
         .map_err(|e| e.to_string())?;
+        tx.execute(
+            "UPDATE notes SET collection=?1 WHERE collection=?2",
+            params![name, old],
+        )
+        .map_err(|e| e.to_string())?;
+        tx.execute(
+            "UPDATE collection_preferences SET collection=?1 WHERE collection=?2",
+            params![name, old],
+        )
+        .map_err(|e| e.to_string())?;
         tx.commit().map_err(|e| e.to_string())
     }
     /// Deleting a collection only unfiles its clips, including favorites.
@@ -209,6 +221,13 @@ impl Store {
             .map_err(|e| e.to_string())?;
         tx.execute(
             "UPDATE templates SET collection='' WHERE collection=?1",
+            [name],
+        )
+        .map_err(|e| e.to_string())?;
+        tx.execute("UPDATE notes SET collection='' WHERE collection=?1", [name])
+            .map_err(|e| e.to_string())?;
+        tx.execute(
+            "DELETE FROM collection_preferences WHERE collection=?1",
             [name],
         )
         .map_err(|e| e.to_string())?;

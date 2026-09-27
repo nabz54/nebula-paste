@@ -2,6 +2,17 @@
 
 [Français](CHANGELOG.fr.md)
 
+## 1.2.0-beta.1 — Collections and notes (in preparation)
+
+- Unified library searching clips, notes and templates.
+- Persistent literal notes: create, edit, convert a text clip and use separate JSON import/export.
+- Per-collection card/list preference and custom collection ordering.
+- Multi-select clips and notes, bulk filing, confirmed deletion and undo of the last bulk operation.
+- Notes survive clipboard clearing and retention; opening another note cannot replace an unfinished draft.
+- Migration, import limits, preservation and transactional undo tests; native dark/light previews.
+
+Templates are excluded from bulk operations. Undo lasts until the next bulk operation or application exit. Separate exports do not include collection ordering or view preferences. Compositor blur and focus still require a real COSMIC session.
+
 ## 1.1.0-beta.1 — Shelf navigation and customization
 
 - Continuous horizontal scrolling; card widgets built around the visible region. Thumbnails remain cached in memory.

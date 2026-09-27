@@ -170,7 +170,7 @@ impl State {
                     self.editing = None;
                     self.discard = false;
                     self.refresh(store);
-                    self.note = tr!("Note enregistré", "Note saved").into();
+                    self.note = tr!("Note enregistrée", "Note saved").into();
                 }
             }
             Message::Back => {
@@ -221,7 +221,7 @@ impl State {
                     store.delete_note(id)?;
                     self.deleting = None;
                     self.refresh(store);
-                    self.note = tr!("Note supprimé", "Note deleted").into();
+                    self.note = tr!("Note supprimée", "Note deleted").into();
                 }
             }
             Message::Import => {
@@ -242,7 +242,7 @@ impl State {
                     self.incoming = None;
                     self.refresh(store);
                     self.note = tr_format!(
-                        "Import : {} ajoutés, {} remplacés, {} ignorés.",
+                        "Import : {} notes ajoutées, {} remplacées, {} ignorées.",
                         "Import: {} added, {} replaced, {} skipped.",
                         result.added,
                         result.replaced,
@@ -261,7 +261,7 @@ impl State {
             Message::Exported(result) => {
                 self.busy = false;
                 if result? {
-                    self.note = tr!("Notes exportés", "Notes exported").into();
+                    self.note = tr!("Notes exportées", "Notes exported").into();
                 }
             }
         }

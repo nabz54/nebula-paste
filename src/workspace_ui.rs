@@ -340,20 +340,16 @@ impl State {
         );
         let filtered = self.filtered();
         body = body.push(
-            widget::row([])
-                .spacing(8)
-                .push(widget::text(tr_format!(
-                    "{} résultats",
-                    "{} results",
-                    filtered.len()
-                )))
-                .push(
-                    widget::button::text(tr!(
-                        "Sélectionner toutes les copies et notes",
-                        "Select all clips and notes"
-                    ))
-                    .on_press(Message::SelectAll),
-                ),
+            widget::flex_row(vec![
+                widget::text(tr_format!("{} résultats", "{} results", filtered.len())).into(),
+                widget::button::text(tr!(
+                    "Sélectionner toutes les copies et notes",
+                    "Select all clips and notes"
+                ))
+                .on_press(Message::SelectAll)
+                .into(),
+            ])
+            .spacing(8),
         );
         if !self.selected.is_empty() {
             body = body

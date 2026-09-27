@@ -25,6 +25,9 @@ jobs:
           target/debug/nebula-paste --render-preview ui-previews/ribbon-dark.png ribbon dark
           target/debug/nebula-paste --render-preview ui-previews/ribbon-light.png ribbon light
           target/debug/nebula-paste --render-preview ui-previews/compact-dark.png popup dark
+          target/debug/nebula-paste --render-preview ui-previews/workspace-dark.png workspace dark
+          target/debug/nebula-paste --render-preview ui-previews/workspace-list-light.png workspace-list light
+          target/debug/nebula-paste --render-preview ui-previews/notes-edit-dark.png notes-edit dark
           python3 - <<'PYTHON'
           import pathlib, struct
           for path in pathlib.Path('ui-previews').glob('ribbon-*.png'):

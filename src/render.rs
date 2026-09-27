@@ -38,6 +38,25 @@ pub fn preview(path: &str) -> Result<(), Box<dyn std::error::Error>> {
         let _ = app.update(crate::app::Message::Collections(true));
     }
     let mode = std::env::args().nth(3).unwrap_or_default();
+    if mode.starts_with("workspace") {
+        app.expand_demo();
+        let _ = app.update(crate::app::Message::Workspace(true));
+        if mode.contains("list") {
+            let _ = app.update(crate::app::Message::WorkspaceEvent(
+                crate::workspace_ui::Message::Layout,
+            ));
+        }
+    }
+    if mode.starts_with("notes") {
+        app.expand_demo();
+        let _ = app.update(crate::app::Message::Notes(true));
+        if mode.contains("edit") {
+            let _ = app.update(crate::app::Message::Note(crate::note_ui::Message::New));
+            let _ = app.update(crate::app::Message::Note(crate::note_ui::Message::Title(
+                "Idées / Ideas".into(),
+            )));
+        }
+    }
     if mode.starts_with("templates") {
         let _ = app.update(crate::app::Message::Templates(true));
         if mode.contains("edit") {

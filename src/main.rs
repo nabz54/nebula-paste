@@ -3,11 +3,13 @@ mod app;
 mod data_ui;
 mod demo;
 mod ipc;
+mod note_ui;
 mod ocr;
 mod render;
 mod skin;
 mod template_ui;
 mod transfer;
+mod workspace_ui;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     nebula_paste::i18n::set_language("auto");

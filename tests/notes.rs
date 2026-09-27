@@ -1,6 +1,6 @@
 use nebula_paste::{
     model::Clip,
-    notes::{self, Archive, Conflict, Note},
+    notes::{Archive, Conflict, Note},
     storage::Store,
 };
 use std::os::unix::fs::PermissionsExt;
@@ -123,7 +123,7 @@ fn each_conflict_policy_is_explicit_and_preserves_other_notes() {
 fn invalid_imports_and_collection_overflow_are_atomic() {
     let s = Store::in_memory().unwrap();
     let mut a = Archive::new(vec![note(1), note(2)]);
-    a.notes[1].body = "{{oops".into();
+    a.notes[1].body = "invalid\0text".into();
     assert!(s.import_notes(&a, Conflict::Replace).is_err());
     assert!(s.notes().unwrap().is_empty());
     assert!(s.collections().unwrap().is_empty());

@@ -1458,32 +1458,29 @@ Notes remain available after clearing history."
             );
         }
         layout = layout.push(
-            widget::row([])
-                .spacing(8)
-                .push(
-                    widget::button::text(tr!("Copies", "Clips"))
-                        .class(skin::button(
-                            !self.templates_open && !self.notes_open && !self.workspace_open,
-                            8.0,
-                            false,
-                        ))
-                        .on_press(Message::Templates(false)),
-                )
-                .push(
-                    widget::button::text(tr!("Modèles", "Templates"))
-                        .class(skin::button(self.templates_open, 8.0, false))
-                        .on_press(Message::Templates(true)),
-                )
-                .push(
-                    widget::button::text(tr!("Notes", "Notes"))
-                        .class(skin::button(self.notes_open, 8.0, false))
-                        .on_press(Message::Notes(true)),
-                )
-                .push(
-                    widget::button::text(tr!("Bibliothèque", "Library"))
-                        .class(skin::button(self.workspace_open, 8.0, false))
-                        .on_press(Message::Workspace(true)),
-                ),
+            widget::flex_row(vec![
+                widget::button::text(tr!("Copies", "Clips"))
+                    .class(skin::button(
+                        !self.templates_open && !self.notes_open && !self.workspace_open,
+                        8.0,
+                        false,
+                    ))
+                    .on_press(Message::Templates(false))
+                    .into(),
+                widget::button::text(tr!("Modèles", "Templates"))
+                    .class(skin::button(self.templates_open, 8.0, false))
+                    .on_press(Message::Templates(true))
+                    .into(),
+                widget::button::text(tr!("Notes", "Notes"))
+                    .class(skin::button(self.notes_open, 8.0, false))
+                    .on_press(Message::Notes(true))
+                    .into(),
+                widget::button::text(tr!("Bibliothèque", "Library"))
+                    .class(skin::button(self.workspace_open, 8.0, false))
+                    .on_press(Message::Workspace(true))
+                    .into(),
+            ])
+            .spacing(6),
         );
         if paused {
             layout = layout.push(
@@ -2964,6 +2961,9 @@ Notes remain available after clearing history."
                 self.workspace_open = true;
                 self.notes_open = false;
                 self.templates_open = false;
+                self.settings_open = false;
+                self.collections_open = false;
+                self.detail = None;
                 if self.demo || self.history.is_some() {
                     return Task::none();
                 }
@@ -2986,7 +2986,7 @@ Notes remain available after clearing history."
             }
             Message::HistoryOpened(id) => {
                 if self.history == Some(id) {
-                    return widget::text_input::focus(self.search_id.clone());
+                    return widget::text_input::focus(self.workspace.search_id.clone());
                 }
             }
             Message::DragHistory => {

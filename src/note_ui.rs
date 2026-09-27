@@ -100,7 +100,7 @@ impl State {
     pub fn from_clip(&mut self, title: &str, body: &str, collection: &str) {
         if self.editing.is_some() {
             self.note = tr!(
-                "Termine le note en cours avant d’en créer un autre.",
+                "Termine la note en cours avant d’en créer une autre.",
                 "Finish the current note before creating another."
             )
             .into();
@@ -369,12 +369,30 @@ impl State {
             let values: HashMap<_, _> = f.values.iter().cloned().collect();
             let preview = notes::expand(&f.note.body, &values);
             let valid = preview.is_ok();
-            body=body.push(widget::text(tr!("Aperçu avant copie", "Preview before copying")).size(13))
-                .push(widget::scrollable(widget::text(preview.unwrap_or_else(|_|f.note.body.clone())).size(13)).height(if compact {120}else{180}))
-                .push(widget::text(tr!("Les valeurs restent en mémoire jusqu’à la fermeture de cette vue. Le texte copié peut rejoindre l’historique.","Values stay in memory until this view closes. Copied text may enter clipboard history.")).size(11))
-                .push(widget::row([]).spacing(8)
-                    .push(widget::button::suggested(tr!("Copier le texte", "Copy text")).on_press_maybe(valid.then_some(Message::Copy)))
-                    .push(widget::button::text(tr!("Retour", "Back")).on_press(Message::Back)));
+            body = body
+                .push(widget::text(tr!("Aperçu avant copie", "Preview before copying")).size(13))
+                .push(
+                    widget::scrollable(
+                        widget::text(preview.unwrap_or_else(|_| f.note.body.clone())).size(13),
+                    )
+                    .height(if compact { 120 } else { 180 }),
+                )
+                .push(
+                    widget::text(tr!(
+                        "La note reste enregistrée. Le texte copié peut rejoindre l’historique.",
+                        "The note remains saved. Copied text may enter clipboard history."
+                    ))
+                    .size(11),
+                )
+                .push(
+                    widget::row([])
+                        .spacing(8)
+                        .push(
+                            widget::button::suggested(tr!("Copier le texte", "Copy text"))
+                                .on_press_maybe(valid.then_some(Message::Copy)),
+                        )
+                        .push(widget::button::text(tr!("Retour", "Back")).on_press(Message::Back)),
+                );
         } else if let Some(a) = &self.incoming {
             let conflicts = a
                 .notes
@@ -445,7 +463,7 @@ impl State {
                     .into(),
             ];
             body = body.push(widget::flex_row(controls).spacing(6)).push(
-                widget::search_input(tr!("Rechercher un note…", "Search notes…"), &self.query)
+                widget::search_input(tr!("Rechercher une note…", "Search notes…"), &self.query)
                     .id(self.search_id.clone())
                     .on_input(Message::Search),
             );
@@ -515,7 +533,7 @@ impl State {
             }
             if count == 0 {
                 list = list.push(widget::text(tr!(
-                    "Aucun note. Crée ton premier texte réutilisable.",
+                    "Aucune note. Crée ton premier texte réutilisable.",
                     "No notes. Create your first reusable text."
                 )));
             }
@@ -605,4 +623,45 @@ pub async fn export_file(archive: Archive) -> Result<bool, String> {
         .await
         .map_err(|e| e.to_string())??;
     Ok(true)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn unsaved_note_is_not_replaced_and_back_requires_discard() {
+        let store = Store::in_memory().unwrap();
+        let mut state = State::default();
+        state.from_clip("Draft", "literal {{unfinished", "");
+        assert!(state.update(Message::New, &store).is_err());
+        assert!(
+            state
+                .update(Message::Edit("missing".into()), &store)
+                .is_err()
+        );
+        state.update(Message::Back, &store).unwrap();
+        assert!(state.discard);
+        assert!(!state.at_root());
+        assert_eq!(state.editing.as_ref().unwrap().title, "Draft");
+        state.update(Message::Discard, &store).unwrap();
+        assert!(state.at_root());
+        assert!(store.notes().unwrap().is_empty());
+    }
+    #[test]
+    fn saved_note_copies_literal_text_and_survives_reopening_editor() {
+        let store = Store::in_memory().unwrap();
+        let mut state = State::default();
+        state.from_clip("Literal", "{{broken $(id)", "");
+        state.update(Message::Save, &store).unwrap();
+        state.refresh(&store);
+        let n = store.notes().unwrap().remove(0);
+        state.update(Message::Use(n.id.clone()), &store).unwrap();
+        match state.update(Message::Copy, &store).unwrap() {
+            Effect::Copy(s) => assert_eq!(s, n.body),
+            _ => panic!("copy expected"),
+        }
+        state.update(Message::Back, &store).unwrap();
+        state.update(Message::Edit(n.id), &store).unwrap();
+        assert_eq!(state.editing.as_ref().unwrap().title, "Literal");
+    }
 }

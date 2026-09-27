@@ -36,3 +36,7 @@ See [TESTING-1.1](TESTING-1.1.en.md). Headless screenshots do not validate Wayla
 Direct/sequential paste, global shortcuts, screen capture and color picking require COSMIC/Wayland capability checks and fallbacks. Copy followed by Ctrl+V remains available. One-click installation requires a selected Fedora distribution channel and authentication mechanism. Floating shelf, inline text expansion and local background removal remain exploratory until feasibility, resource use and quality are validated.
 
 Sync, remote services and AI are not required. Fixes, performance, accessibility and FR/EN documentation belong in every release.
+
+## 1.2 delivery in preparation
+
+Persistent notes, unified search library, per-collection views, bulk filing and undo are implemented on `feature/1.2-notes`. See [TESTING-1.2](TESTING-1.2.en.md). Editing uses a dedicated screen; Kanban remains a later roadmap item.

@@ -448,7 +448,7 @@ impl State {
                         .push(widget::text(e.body.chars().take(150).collect::<String>()).size(12));
                 }
             }
-            let mut actions = widget::row([]).spacing(4).push(
+            let mut actions = widget::column([]).spacing(4).push(
                 widget::button::text(if e.kind == 0 {
                     tr!("Copier", "Copy")
                 } else if e.kind == 1 {
@@ -523,5 +523,40 @@ impl State {
                 .push(widget::container(body).width(Length::Fill))
                 .into()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn unified_search_and_bulk_selection_keep_templates_separate() {
+        let mut store = Store::in_memory().unwrap();
+        let c = Clip::new("text/plain".into(), "Élodie copie".as_bytes().to_vec(), 1).unwrap();
+        store.insert(&c).unwrap();
+        store
+            .save_note(None, "Élodie note", "persistent", "")
+            .unwrap();
+        store
+            .save_template(None, "Élodie modèle", "{{nom}}", "")
+            .unwrap();
+        let mut state = State::default();
+        state
+            .refresh(&store, &store.load().unwrap(), &HashMap::new())
+            .unwrap();
+        state
+            .update(Message::Search("elodie".into()), &store)
+            .unwrap();
+        assert_eq!(state.filtered().len(), 3);
+        state.update(Message::SelectAll, &store).unwrap();
+        assert_eq!(state.selected.len(), 2);
+        state.update(Message::Delete, &store).unwrap();
+        assert_eq!(store.notes().unwrap().len(), 1);
+        state.update(Message::AskDelete, &store).unwrap();
+        state.update(Message::Delete, &store).unwrap();
+        assert!(store.notes().unwrap().is_empty());
+        assert_eq!(store.templates().unwrap().len(), 1);
+        state.update(Message::Undo, &store).unwrap();
+        assert_eq!(store.notes().unwrap().len(), 1);
     }
 }

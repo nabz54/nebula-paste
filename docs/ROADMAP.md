@@ -36,3 +36,7 @@ Validation : [TESTING-1.1](TESTING-1.1.md). Les captures hors session ne validen
 Collage direct et séquentiel, raccourcis globaux, capture d’écran et pipette : vérifier les capacités COSMIC/Wayland et définir les replis. La copie suivie de Ctrl+V reste disponible. Mise à jour « un clic » : choisir le canal Fedora et son mécanisme d’authentification avant de promettre une installation intégrée. Bandeau flottant, expansion textuelle et suppression locale du fond d’image : hors versions engagées tant que faisabilité, ressources et qualité ne sont pas validées.
 
 Synchronisation, services distants et IA ne sont pas requis. Corrections, performances, accessibilité et documentation FR/EN font partie de chaque livraison.
+
+## Livraison 1.2 en préparation
+
+Notes persistantes, bibliothèque avec recherche commune, vues par collection, classement groupé et annulation : implémentés sur la branche `feature/1.2-notes`. Validation : [TESTING-1.2](TESTING-1.2.md). Édition dans un écran dédié ; tableau Kanban reporté à la suite de la roadmap.

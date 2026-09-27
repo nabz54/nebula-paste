@@ -45,8 +45,8 @@ pub struct ImportResult {
 
 fn invalid() -> String {
     tr!(
-        "Note invalide : vérifie le titre, le contenu et les champs.",
-        "Invalid note: check title, body and fields."
+        "Note invalide : vérifie le titre et le contenu.",
+        "Invalid note: check title and body."
     )
     .into()
 }

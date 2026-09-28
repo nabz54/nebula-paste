@@ -113,7 +113,17 @@ impl State {
                 }
             }
             Message::Copy => return Ok(Effect::Copy(self.result()?, false)),
-            Message::SaveNote => return Ok(Effect::Note(self.result()?)),
+            Message::SaveNote => {
+                let result = self.result()?;
+                if result.len() > nebula_paste::notes::MAX_BODY {
+                    return Err(tr!(
+                        "Une note est limitée à 64 Kio. Réduis l’assemblage ou copie le résultat.",
+                        "A note is limited to 64 KiB. Reduce the assembly or copy the result."
+                    )
+                    .into());
+                }
+                return Ok(Effect::Note(result));
+            }
             Message::MakeQueue => {
                 self.queue.replace(&self.parts, self.mode)?;
                 self.notice=tr!("File préparée en mémoire. Chaque copie nécessite ensuite Ctrl+V dans l’application cible.","Queue prepared in memory. After each copy, press Ctrl+V in the target application.").into();

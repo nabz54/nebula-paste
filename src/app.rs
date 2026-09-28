@@ -1904,8 +1904,8 @@ Notes remain available after clearing history."
                     widget::column([])
                         .push(
                             widget::text(tr_format!(
-                                "⠿ Glisser · Ctrl+1…{} : choisir · Ctrl+Maj+C : texte brut",
-                                "⠿ Drag · Ctrl+1…{}: select · Ctrl+Shift+C: plain text",
+                                "⠿ Glisser · Ctrl+1…{} : choisir · Autres touches : Actions",
+                                "⠿ Drag · Ctrl+1…{}: select · Other shortcuts: Actions",
                                 page_size.min(MAX_SHORTCUTS)
                             ))
                             .size(11)
@@ -2609,6 +2609,20 @@ Notes remain available after clearing history."
                 let changed = matches!(&msg, W::Move | W::Delete | W::Undo | W::Order(_, _));
                 match self.workspace.update(msg, store) {
                     Err(e) => self.workspace.notice = e,
+                    Ok(E::Activate(id)) => match self.settings.actions.clicks[2] {
+                        0 => return self.copy(&id),
+                        1 => {
+                            self.workspace_open = false;
+                            return self.update(Message::Detail(Some(id)));
+                        }
+                        _ => {
+                            return self.update(Message::WorkspaceEvent(
+                                crate::workspace_ui::Message::Select(
+                                    nebula_paste::workspace::Key::Clip(id),
+                                ),
+                            ));
+                        }
+                    },
                     Ok(E::Actions(parts)) => return self.update(Message::ActionsLoad(parts)),
                     Ok(E::None) => {
                         if changed {
@@ -4095,5 +4109,45 @@ mod tests {
         let _ = app.update(Message::WindowResized(app.history.unwrap(), 520.0));
         assert_eq!(app.width(), 520.0);
         assert_eq!(app.sidebar_width(), 0.0);
+    }
+}
+
+#[cfg(test)]
+mod action_tests {
+    use super::*;
+    #[test]
+    fn failed_queue_copy_does_not_advance_or_leave_busy_state() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        let p = nebula_paste::text_actions::Part {
+            title: "A".into(),
+            text: "a".into(),
+        };
+        app.action_state
+            .queue
+            .replace(&[p], Default::default())
+            .unwrap();
+        app.copying = true;
+        app.action_state.busy = true;
+        let _ = app.update(Message::ActionCopied(Err("failure".into()), true));
+        assert_eq!(app.action_state.queue.next, 0);
+        assert!(!app.copying);
+        assert!(!app.action_state.busy);
+        let _ = app.update(Message::ActionCopied(Ok(()), true));
+        assert_eq!(app.action_state.queue.next, 1);
+    }
+    #[test]
+    fn shortcuts_do_not_copy_while_editing_and_custom_bindings_apply() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        app.notes_open = true;
+        let _ = app.update(Message::Shortcut("CTRL+SHIFT+A".into(), true));
+        assert!(!app.actions_open);
+        app.notes_open = false;
+        app.settings.actions.bind(3, "Ctrl+Shift+K").unwrap();
+        let _ = app.update(Message::Shortcut("CTRL+SHIFT+A".into(), true));
+        assert!(!app.actions_open);
+        let _ = app.update(Message::Shortcut("CTRL+SHIFT+K".into(), false));
+        assert!(!app.actions_open);
+        let _ = app.update(Message::Shortcut("CTRL+SHIFT+K".into(), true));
+        assert!(app.actions_open);
     }
 }

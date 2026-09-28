@@ -14,3 +14,10 @@ fn action_preferences_persist_and_corrupt_sections_fall_back() {
     assert_eq!(parsed.actions, Preferences::default());
     assert!(parsed.keep_open);
 }
+#[test]
+fn text_limits_count_utf8_and_reject_case_expansion_over_budget() {
+    use nebula_paste::text_actions::{MAX_TEXT, Transform};
+    let input = "ΐ".repeat(MAX_TEXT / 2);
+    assert!(input.len() <= MAX_TEXT);
+    assert!(Transform::Upper.apply(&input).is_err());
+}

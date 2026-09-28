@@ -4115,6 +4115,7 @@ mod tests {
 #[cfg(test)]
 mod action_tests {
     use super::*;
+    use cosmic::Application;
     #[test]
     fn failed_queue_copy_does_not_advance_or_leave_busy_state() {
         let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);

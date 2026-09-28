@@ -13,6 +13,7 @@ struct Entry {
     id: String,
     title: String,
     body: String,
+    source: String,
     collection: String,
     pinned: bool,
     can_convert: bool,
@@ -35,6 +36,7 @@ impl Entry {
 }
 #[derive(Debug, Clone)]
 pub enum Message {
+    Actions,
     Search(String),
     Scope(u8),
     Collection(String),
@@ -57,6 +59,7 @@ pub enum Message {
     Manage,
 }
 pub enum Effect {
+    Actions(Vec<nebula_paste::text_actions::Part>),
     None,
     NewNote,
     Notes,
@@ -114,6 +117,7 @@ impl State {
                 kind: 0,
                 id: c.id.clone(),
                 title: c.title.clone(),
+                source: c.text.clone(),
                 body: format!(
                     "{}\n{}",
                     c.text,
@@ -128,6 +132,7 @@ impl State {
             kind: 1,
             id: n.id,
             title: n.title,
+            source: n.body.clone(),
             body: n.body,
             collection: n.collection,
             pinned: false,
@@ -137,6 +142,7 @@ impl State {
             kind: 2,
             id: n.id,
             title: n.title,
+            source: n.body.clone(),
             body: n.body,
             collection: n.collection,
             pinned: false,
@@ -182,6 +188,29 @@ impl State {
     }
     pub fn update(&mut self, message: Message, store: &Store) -> Result<Effect, String> {
         match message {
+            Message::Actions => {
+                let entries: Vec<_> = self
+                    .filtered()
+                    .into_iter()
+                    .filter(|e| e.key().is_some_and(|k| self.selected.contains(&k)))
+                    .collect();
+                if entries.iter().any(|e| e.kind == 0 && !e.can_convert) {
+                    return Err(tr!(
+                        "Sélectionne uniquement des copies textuelles et des notes.",
+                        "Select only text clips and notes."
+                    )
+                    .into());
+                }
+                return Ok(Effect::Actions(
+                    entries
+                        .into_iter()
+                        .map(|e| nebula_paste::text_actions::Part {
+                            title: e.title.clone(),
+                            text: e.source.clone(),
+                        })
+                        .collect(),
+                ));
+            }
             Message::Search(s) => {
                 self.query = s;
                 self.reset();
@@ -360,6 +389,9 @@ impl State {
                 )))
                 .push(
                     widget::flex_row(vec![
+                        widget::button::text(tr!("Actions…", "Actions…"))
+                            .on_press(Message::Actions)
+                            .into(),
                         widget::button::text(tr!("Annuler la sélection", "Clear selection"))
                             .on_press(Message::ClearSelection)
                             .into(),

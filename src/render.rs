@@ -38,6 +38,18 @@ pub fn preview(path: &str) -> Result<(), Box<dyn std::error::Error>> {
         let _ = app.update(crate::app::Message::Collections(true));
     }
     let mode = std::env::args().nth(3).unwrap_or_default();
+    if mode.starts_with("actions") {
+        app.expand_demo();
+        let parts = crate::demo::clips()
+            .iter()
+            .filter_map(crate::action_ui::clip_part)
+            .take(3)
+            .collect();
+        let _ = app.update(crate::app::Message::ActionsLoad(parts));
+        let _ = app.update(crate::app::Message::Action(
+            crate::action_ui::Message::MakeQueue,
+        ));
+    }
     if mode.starts_with("workspace") {
         app.expand_demo();
         let _ = app.update(crate::app::Message::Workspace(true));

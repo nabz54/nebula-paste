@@ -50,6 +50,7 @@ impl Density {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Settings {
+    pub actions: crate::text_actions::Preferences,
     pub density: Density,
     /// Toujours l’une des valeurs de `OCR_LANGUAGES`.
     pub ocr_language: &'static str,
@@ -71,6 +72,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
+            actions: Default::default(),
             density: Density::Comfortable,
             ocr_language: OCR_LANGUAGES[0],
             retention_days: 0,
@@ -112,6 +114,13 @@ impl Settings {
             };
             let value = value.trim();
             match key.trim() {
+                "actions" => {
+                    if let Ok(p) = serde_json::from_str::<crate::text_actions::Preferences>(value) {
+                        if p.validate().is_ok() {
+                            settings.actions = p;
+                        }
+                    }
+                }
                 "card-size" => {
                     if let Ok(n) = value.parse::<u8>() {
                         if n < 3 {
@@ -175,7 +184,10 @@ impl Settings {
             self.oldest_first,
             serde_json::to_string(&self.default_collection).unwrap()
         );
-        extra
+        format!(
+            "actions = {}\n",
+            serde_json::to_string(&self.actions).unwrap()
+        ) + &extra
             + &format!(
                 "# Préférences de Nebula Paste. Les valeurs inconnues sont ignorées.\n\
              density = {}\n\

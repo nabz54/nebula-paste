@@ -25,6 +25,7 @@ impl App {
     pub(super) fn ribbon_visible(&self) -> bool {
         self.is_popup()
             && !self.compact_popup()
+            && !self.actions_open
             && !self.templates_open
             && !self.notes_open
             && !self.workspace_open
@@ -77,7 +78,7 @@ impl App {
             .push(widget::container(metadata).padding([0, 4]))
             .spacing(8);
         let copy = widget::button::custom(body)
-            .on_press(Message::Copy(clip.id.clone()))
+            .on_press(Message::ActivateClip(clip.id.clone()))
             .class(skin::button(self.selected == index, 12.0, true))
             .padding(8)
             .width(width);
@@ -188,7 +189,8 @@ impl App {
             .push(
                 widget::button::text(tr!("Bibliothèque", "Library"))
                     .on_press(Message::Workspace(true)),
-            );
+            )
+            .push(widget::button::text(tr!("Actions", "Actions")).on_press(Message::ActionsOpen));
         let tabs = widget::scrollable(tabs)
             .direction(iced::widget::scrollable::Direction::Horizontal(
                 iced::widget::scrollable::Scrollbar::default(),

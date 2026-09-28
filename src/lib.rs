@@ -11,3 +11,5 @@ pub mod backup;
 
 pub mod notes;
 pub mod workspace;
+
+pub mod text_actions;

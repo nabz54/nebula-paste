@@ -56,7 +56,6 @@ impl App {
 
     fn ribbon_card<'a>(&self, clip: &'a Clip, index: usize, width: f32) -> Element<'a, Message> {
         let metadata = widget::row([])
-            .push(skin::icon(clip.kind.icon()).icon().size(12))
             .push(widget::text(model::age(clip.timestamp)).size(11))
             .push(widget::Space::new().width(Length::Fill))
             .push(
@@ -74,12 +73,31 @@ impl App {
             .spacing(5)
             .align_y(iced::Alignment::Center);
         let body = widget::column([])
+            .push(
+                widget::container(widget::Space::new().height(3))
+                    .width(Length::Fill)
+                    .class(skin::type_rail(
+                        skin::TypeTint::clip(clip),
+                        self.settings.type_colors,
+                    )),
+            )
+            .push(skin::type_badge(
+                clip.kind.label(),
+                clip.kind.icon(),
+                skin::TypeTint::clip(clip),
+                self.settings.type_colors,
+            ))
             .push(self.preview(clip, 132.0))
             .push(widget::container(metadata).padding([0, 4]))
             .spacing(8);
         let copy = widget::button::custom(body)
             .on_press(Message::ActivateClip(clip.id.clone()))
-            .class(skin::button(self.selected == index, 12.0, true))
+            .class(skin::type_button(
+                self.selected == index,
+                skin::TypeTint::clip(clip),
+                self.settings.type_colors,
+                false,
+            ))
             .padding(8)
             .width(width);
         // The preview is also available from the selected-item toolbar, so

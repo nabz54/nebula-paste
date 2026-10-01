@@ -267,7 +267,12 @@ impl State {
         }
         Ok(Effect::None)
     }
-    pub fn view<'a>(&'a self, collections: &'a [String], compact: bool) -> Element<'a, Message> {
+    pub fn view<'a>(
+        &'a self,
+        collections: &'a [String],
+        compact: bool,
+        colors: nebula_paste::settings::TypeColors,
+    ) -> Element<'a, Message> {
         let mut body = widget::column([])
             .spacing(10)
             .push(widget::text(tr!("Notes", "Notes")).size(20))
@@ -499,6 +504,12 @@ impl State {
                 count += 1;
                 let row = widget::column([])
                     .spacing(4)
+                    .push(crate::skin::type_badge(
+                        tr!("Note", "Note"),
+                        "text-x-generic-symbolic",
+                        crate::skin::TypeTint::Note,
+                        colors,
+                    ))
                     .push(widget::button::text(&t.title).on_press(Message::Use(t.id.clone())))
                     .push(
                         widget::text(
@@ -524,12 +535,9 @@ impl State {
                                     .on_press(Message::AskDelete(t.id.clone())),
                             ),
                     );
-                list = list.push(
-                    widget::container(row)
-                        .padding(8)
-                        .width(Length::Fill)
-                        .class(cosmic::theme::Container::Card),
-                );
+                list = list.push(widget::container(row).padding(8).width(Length::Fill).class(
+                    crate::skin::type_card(crate::skin::TypeTint::Note, colors, compact),
+                ));
             }
             if count == 0 {
                 list = list.push(widget::text(tr!(

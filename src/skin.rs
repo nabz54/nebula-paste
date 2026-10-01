@@ -27,7 +27,23 @@ pub fn swatch(color: Color) -> theme::Container<'static> {
 }
 
 /// Keep the existing density choices while delegating interaction states to COSMIC.
-pub fn button(selected: bool, _radius: f32, card: bool) -> theme::Button {
+pub fn button(selected: bool, radius: f32, card: bool) -> theme::Button {
+    styled_button(selected, radius, card, None)
+}
+pub fn type_button(
+    selected: bool,
+    tint: TypeTint,
+    mode: TypeColors,
+    compact: bool,
+) -> theme::Button {
+    styled_button(selected, 8.0, true, Some((tint, mode, compact)))
+}
+fn styled_button(
+    selected: bool,
+    _radius: f32,
+    card: bool,
+    tint: Option<(TypeTint, TypeColors, bool)>,
+) -> theme::Button {
     if !card {
         return if selected {
             theme::Button::Suggested
@@ -38,6 +54,11 @@ pub fn button(selected: bool, _radius: f32, card: bool) -> theme::Button {
     // Native interaction colours, but card-sized corners instead of a pill.
     use widget::button::Catalog;
     let decorate = move |mut style: widget::button::Style, theme: &cosmic::Theme, focus: bool| {
+        if let Some((tint, mode, compact)) = tint {
+            if let Some(cosmic::iced::Background::Color(bg)) = style.background {
+                style.background = Some(blend(bg, tint.color(), strength(mode, compact)).into());
+            }
+        }
         style.border_radius = theme.cosmic().corner_radii.radius_s.into();
         if selected || focus {
             style.border_width = 2.0;
@@ -125,4 +146,195 @@ pub fn icon(name: &str) -> widget::icon::Handle {
         "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><g fill='none' stroke='#b4b7c1' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'>{path}</g></svg>"
     );
     widget::icon::from_svg_bytes(svg.into_bytes()).symbolic(true)
+}
+
+use nebula_paste::{
+    model::{self, Clip, Kind},
+    settings::TypeColors,
+};
+/// Kept separate from stored clip kinds: notes are not clipboard history.
+#[derive(Clone, Copy)]
+pub enum TypeTint {
+    Clip(Kind, Option<[u8; 3]>),
+    Note,
+    Neutral,
+}
+impl TypeTint {
+    pub fn clip(c: &Clip) -> Self {
+        Self::Clip(
+            c.kind,
+            if c.kind == Kind::Color {
+                model::color(c.text.trim())
+            } else {
+                None
+            },
+        )
+    }
+    fn color(self) -> Color {
+        let rgb = match self {
+            Self::Clip(Kind::Text, _) => [168, 143, 235],
+            Self::Clip(Kind::Link, _) => [73, 151, 232],
+            Self::Clip(Kind::Image, _) => [226, 118, 177],
+            Self::Clip(Kind::Code, _) => [68, 180, 145],
+            Self::Clip(Kind::Files, _) => [213, 151, 60],
+            Self::Note => [202, 180, 66],
+            Self::Clip(Kind::Color, sample) => sample.unwrap_or([168, 143, 235]),
+            Self::Neutral => [144, 144, 144],
+        };
+        Color::from_rgb8(rgb[0], rgb[1], rgb[2])
+    }
+}
+fn strength(mode: TypeColors, compact: bool) -> f32 {
+    if compact {
+        return 0.0;
+    }
+    match mode {
+        TypeColors::Off => 0.0,
+        TypeColors::Subtle => 0.04,
+        TypeColors::Vivid => 0.18,
+    }
+}
+fn blend(base: Color, tint: Color, weight: f32) -> Color {
+    Color {
+        r: base.r + (tint.r - base.r) * weight,
+        g: base.g + (tint.g - base.g) * weight,
+        b: base.b + (tint.b - base.b) * weight,
+        a: base.a,
+    }
+}
+fn luminance(c: Color) -> f32 {
+    let linear = |v: f32| {
+        if v <= 0.04045 {
+            v / 12.92
+        } else {
+            ((v + 0.055) / 1.055).powf(2.4)
+        }
+    };
+    0.2126 * linear(c.r) + 0.7152 * linear(c.g) + 0.0722 * linear(c.b)
+}
+fn contrast(a: Color, b: Color) -> f32 {
+    let (a, b) = (luminance(a), luminance(b));
+    (a.max(b) + 0.05) / (a.min(b) + 0.05)
+}
+fn readable(color: Color, bg: Color) -> Color {
+    let target = if contrast(Color::BLACK, bg) > contrast(Color::WHITE, bg) {
+        Color::BLACK
+    } else {
+        Color::WHITE
+    };
+    for step in 0..=20 {
+        let c = blend(color, target, step as f32 / 20.0);
+        if contrast(c, bg) >= 4.5 {
+            return c;
+        }
+    }
+    target
+}
+pub fn type_card(tint: TypeTint, mode: TypeColors, compact: bool) -> theme::Container<'static> {
+    theme::Container::custom(move |theme| {
+        use cosmic::iced::widget::container::Catalog;
+        let mut style = theme.style(&theme::Container::Card);
+        if let Some(cosmic::iced::Background::Color(bg)) = style.background {
+            style.background = Some(blend(bg, tint.color(), strength(mode, compact)).into());
+        }
+        style
+    })
+}
+pub fn type_rail(tint: TypeTint, mode: TypeColors) -> theme::Container<'static> {
+    if mode == TypeColors::Off {
+        theme::Container::Transparent
+    } else {
+        swatch(tint.color())
+    }
+}
+/// A small opaque badge gives its label a predictable, accessible contrast even
+/// when the applet background is frosted. The desktop surface stays untouched.
+pub fn type_badge<'a, M: 'a>(
+    label: impl Into<String>,
+    icon_name: &str,
+    tint: TypeTint,
+    mode: TypeColors,
+) -> cosmic::Element<'a, M> {
+    let row = widget::row([])
+        .spacing(4)
+        .push(icon(icon_name).icon().size(12))
+        .push(widget::text(label.into()).size(11));
+    widget::container(row)
+        .padding([2, 4])
+        .class(theme::Container::custom(move |theme| {
+            if mode == TypeColors::Off {
+                return Default::default();
+            }
+            let base: Color = theme.cosmic().bg_color().into();
+            let mut bg = blend(base, tint.color(), 0.12);
+            bg.a = 1.0;
+            let fg = readable(tint.color(), bg);
+            cosmic::iced::widget::container::Style {
+                background: Some(bg.into()),
+                text_color: Some(fg),
+                icon_color: Some(fg),
+                border: Border {
+                    radius: 4.0.into(),
+                    ..Default::default()
+                },
+                ..Default::default()
+            }
+        }))
+        .into()
+}
+
+#[cfg(test)]
+mod type_color_tests {
+    use super::*;
+    #[test]
+    fn badge_labels_meet_contrast_on_both_themes_and_extreme_swatches() {
+        for theme in [cosmic::Theme::dark(), cosmic::Theme::light()] {
+            for tint in Kind::ALL
+                .into_iter()
+                .map(|k| TypeTint::Clip(k, None))
+                .chain([
+                    TypeTint::Note,
+                    TypeTint::Clip(Kind::Color, Some([255; 3])),
+                    TypeTint::Clip(Kind::Color, Some([0; 3])),
+                ])
+            {
+                let bg = blend(theme.cosmic().bg_color().into(), tint.color(), 0.12);
+                assert!(contrast(readable(tint.color(), bg), bg) >= 4.5);
+            }
+        }
+    }
+    #[test]
+    fn off_keeps_native_card_and_selection_and_tints_keep_alpha() {
+        use widget::button::Catalog;
+        let theme = cosmic::Theme::dark();
+        let tint = TypeTint::Clip(Kind::Image, None);
+        for selected in [false, true] {
+            let native = theme.active(false, false, &button(selected, 8.0, true));
+            let off = theme.active(
+                false,
+                false,
+                &type_button(selected, tint, TypeColors::Off, false),
+            );
+            assert_eq!(native.background, off.background);
+            assert_eq!(native.border_color, off.border_color);
+            let vivid = theme.active(
+                false,
+                false,
+                &type_button(selected, tint, TypeColors::Vivid, false),
+            );
+            assert_eq!(vivid.border_color, native.border_color);
+        }
+        assert_eq!(
+            blend(
+                Color {
+                    a: 0.7,
+                    ..Color::BLACK
+                },
+                Color::WHITE,
+                0.18
+            )
+            .a,
+            0.7
+        );
+    }
 }

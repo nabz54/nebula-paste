@@ -10,6 +10,7 @@ use std::collections::{HashMap, HashSet};
 #[derive(Clone)]
 struct Entry {
     kind: u8,
+    clip_kind: Option<model::Kind>,
     id: String,
     title: String,
     body: String,
@@ -26,9 +27,29 @@ impl Entry {
             _ => None,
         }
     }
+    fn tint(&self) -> crate::skin::TypeTint {
+        match self.clip_kind {
+            Some(k) => crate::skin::TypeTint::Clip(
+                k,
+                if k == model::Kind::Color {
+                    model::color(self.source.trim())
+                } else {
+                    None
+                },
+            ),
+            None if self.kind == 1 => crate::skin::TypeTint::Note,
+            _ => crate::skin::TypeTint::Neutral,
+        }
+    }
+    fn icon(&self) -> &'static str {
+        self.clip_kind
+            .map_or("text-x-generic-symbolic", model::Kind::icon)
+    }
     fn label(&self) -> &'static str {
         match self.kind {
-            0 => tr!("Copie", "Clip"),
+            0 => self
+                .clip_kind
+                .map_or(tr!("Copie", "Clip"), model::Kind::label),
             1 => tr!("Note", "Note"),
             _ => tr!("Modèle", "Template"),
         }
@@ -117,6 +138,7 @@ impl State {
             .iter()
             .map(|c| Entry {
                 kind: 0,
+                clip_kind: Some(c.kind),
                 id: c.id.clone(),
                 title: c.title.clone(),
                 source: c.text.clone(),
@@ -132,6 +154,7 @@ impl State {
             .collect();
         self.entries.extend(notes.into_iter().map(|n| Entry {
             kind: 1,
+            clip_kind: None,
             id: n.id,
             title: n.title,
             source: n.body.clone(),
@@ -142,6 +165,7 @@ impl State {
         }));
         self.entries.extend(templates.into_iter().map(|n| Entry {
             kind: 2,
+            clip_kind: None,
             id: n.id,
             title: n.title,
             source: n.body.clone(),
@@ -298,6 +322,7 @@ impl State {
         &'a self,
         width: f32,
         images: &'a HashMap<String, cosmic::iced::widget::image::Handle>,
+        colors: nebula_paste::settings::TypeColors,
     ) -> Element<'a, Message> {
         let mut side = widget::column([]).spacing(4);
         for (i, label) in [
@@ -521,7 +546,7 @@ impl State {
                     };
                 widget::column([])
                     .spacing(6)
-                    .push(widget::text(label).size(11))
+                    .push(crate::skin::type_badge(label, e.icon(), e.tint(), colors))
                     .push(widget::container(heading).height(42))
                     .push(widget::container(preview).height(96))
                     .push(actions)
@@ -529,7 +554,7 @@ impl State {
             } else {
                 let info = widget::column([])
                     .spacing(4)
-                    .push(widget::text(label).size(11))
+                    .push(crate::skin::type_badge(label, e.icon(), e.tint(), colors))
                     .push(heading);
                 if width >= 720.0 {
                     widget::row([])
@@ -547,15 +572,24 @@ impl State {
                 }
             };
             cards.push(
-                widget::container(content)
-                    .padding(12)
-                    .width(if self.cards {
-                        Length::Fixed(card_width)
-                    } else {
-                        Length::Fill
-                    })
-                    .class(cosmic::theme::Container::Card)
-                    .into(),
+                widget::container(
+                    widget::column([])
+                        .spacing(6)
+                        .push(
+                            widget::container(widget::Space::new().height(3))
+                                .width(Length::Fill)
+                                .class(crate::skin::type_rail(e.tint(), colors)),
+                        )
+                        .push(content),
+                )
+                .padding(12)
+                .width(if self.cards {
+                    Length::Fixed(card_width)
+                } else {
+                    Length::Fill
+                })
+                .class(crate::skin::type_card(e.tint(), colors, !self.cards))
+                .into(),
             );
         }
         if self.cards {

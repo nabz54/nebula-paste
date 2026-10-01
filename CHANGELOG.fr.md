@@ -2,6 +2,10 @@
 
 [English](CHANGELOG.md)
 
+## 1.4 — En développement : couleurs par type
+
+- Réglage persistant Discrètes / Accentuées / Désactivées ; pastilles et liserés cohérents dans l’applet compacte, le bandeau, l’historique, la bibliothèque et les notes. Surfaces et sélection natives COSMIC conservées. Libellés lisibles dans les deux thèmes ; échantillon réel conservé pour les couleurs. Ce lot visuel ne comprend pas encore capture/OCR/pipette.
+
 ## 1.3.0-beta.1 — Actions et raccourcis (en préparation)
 
 - Transformations de texte avec aperçu : majuscules, minuscules, nettoyage des espaces et lignes vides ; originaux conservés.

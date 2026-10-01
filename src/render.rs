@@ -83,6 +83,17 @@ pub fn preview(path: &str) -> Result<(), Box<dyn std::error::Error>> {
     if mode.starts_with("data") {
         app.prepare_data_preview();
     }
+    // Fifth argument selects the presentation setting without touching user data.
+    match std::env::args().nth(5).as_deref() {
+        Some("vivid") => {
+            let _ = app.update(crate::app::Message::TypeColors);
+        }
+        Some("off") => {
+            let _ = app.update(crate::app::Message::TypeColors);
+            let _ = app.update(crate::app::Message::TypeColors);
+        }
+        _ => {}
+    }
     let popup = mode == "ribbon" || mode == "popup" || mode.contains("popup");
     if popup {
         app.render_popup();

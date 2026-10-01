@@ -2,6 +2,10 @@
 
 [Français](CHANGELOG.fr.md)
 
+## 1.4 — In development: colors by type
+
+- Persistent Subtle / Vivid / Off setting, consistent type badges and rails in the compact applet, shelf, history, library and notes. Native COSMIC surfaces and selection remain intact. Accessible labels in both themes; color clips keep their actual swatch. Capture/OCR/picker work is not included in this visual increment.
+
 ## 1.3.0-beta.1 — Actions and shortcuts (in preparation)
 
 - Preview text transforms: upper/lowercase, trim whitespace and remove blank lines; originals preserved.

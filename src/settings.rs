@@ -48,9 +48,50 @@ impl Density {
     }
 }
 
+/// Presentation only: never changes clipboard data or the desktop theme.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TypeColors {
+    #[default]
+    Subtle,
+    Vivid,
+    Off,
+}
+impl TypeColors {
+    pub fn next(self) -> Self {
+        match self {
+            Self::Subtle => Self::Vivid,
+            Self::Vivid => Self::Off,
+            Self::Off => Self::Subtle,
+        }
+    }
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Subtle => tr!("Discrètes", "Subtle"),
+            Self::Vivid => tr!("Accentuées", "Vivid"),
+            Self::Off => tr!("Désactivées", "Off"),
+        }
+    }
+    fn key(self) -> &'static str {
+        match self {
+            Self::Subtle => "subtle",
+            Self::Vivid => "vivid",
+            Self::Off => "off",
+        }
+    }
+    fn parse(s: &str) -> Option<Self> {
+        match s {
+            "subtle" => Some(Self::Subtle),
+            "vivid" => Some(Self::Vivid),
+            "off" => Some(Self::Off),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Settings {
     pub actions: crate::text_actions::Preferences,
+    pub type_colors: TypeColors,
     pub density: Density,
     /// Toujours l’une des valeurs de `OCR_LANGUAGES`.
     pub ocr_language: &'static str,
@@ -73,6 +114,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             actions: Default::default(),
+            type_colors: TypeColors::default(),
             density: Density::Comfortable,
             ocr_language: OCR_LANGUAGES[0],
             retention_days: 0,
@@ -119,6 +161,11 @@ impl Settings {
                         if p.validate().is_ok() {
                             settings.actions = p;
                         }
+                    }
+                }
+                "type-colors" => {
+                    if let Some(mode) = TypeColors::parse(value) {
+                        settings.type_colors = mode;
                     }
                 }
                 "card-size" => {
@@ -185,8 +232,9 @@ impl Settings {
             serde_json::to_string(&self.default_collection).unwrap()
         );
         format!(
-            "actions = {}\n",
-            serde_json::to_string(&self.actions).unwrap()
+            "actions = {}\ntype-colors = {}\n",
+            serde_json::to_string(&self.actions).unwrap(),
+            self.type_colors.key()
         ) + &extra
             + &format!(
                 "# Préférences de Nebula Paste. Les valeurs inconnues sont ignorées.\n\

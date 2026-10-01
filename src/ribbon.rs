@@ -87,9 +87,10 @@ impl App {
                 skin::TypeTint::clip(clip),
                 self.settings.type_colors,
             ))
-            .push(self.preview(clip, 132.0))
+            .push(self.preview(clip, 108.0))
             .push(widget::container(metadata).padding([0, 4]))
-            .spacing(8);
+            // Rail + badge + preview + metadata must fit the 184 px shelf.
+            .spacing(5);
         let copy = widget::button::custom(body)
             .on_press(Message::ActivateClip(clip.id.clone()))
             .class(skin::type_button(

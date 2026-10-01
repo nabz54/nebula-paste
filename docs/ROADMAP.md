@@ -37,6 +37,10 @@ Collage direct et séquentiel, raccourcis globaux, capture d’écran et pipette
 
 Synchronisation, services distants et IA ne sont pas requis. Corrections, performances, accessibilité et documentation FR/EN font partie de chaque livraison.
 
-## Livraison 1.2 en préparation
+## Livraison 1.2 — bêta publiée le 27 septembre 2026
 
 Notes persistantes, bibliothèque avec recherche commune, vues par collection, classement groupé et annulation : implémentés sur la branche `feature/1.2-notes`. Validation : [TESTING-1.2](TESTING-1.2.md). Édition dans un écran dédié ; tableau Kanban reporté à la suite de la roadmap.
+
+## Livraison 1.3 en préparation
+
+Actions de texte, assemblage ordonné, file de copie, favoris rapides et raccourcis internes configurables. Les raccourcis globaux utilisent des commandes à associer manuellement dans COSMIC. Le collage séquentiel automatique n’est pas annoncé : la file copie un élément à la fois, puis l’utilisateur colle avec Ctrl+V. [Validation 1.3](TESTING-1.3.md).

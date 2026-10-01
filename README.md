@@ -1,9 +1,9 @@
 # Nebula Paste — applet pour COSMIC
 
-**Développement 1.2 :** notes persistantes, bibliothèque commune et actions groupées — [parcours de validation](docs/TESTING-1.2.md). Pas encore publiée.
+**Développement 1.3 :** actions de texte, assemblage, file de copie et raccourcis — [guide de test](docs/TESTING-1.3.md). Pas encore publiée.
 
 
-**1.1.0-beta.1 — bandeau continu et préférences d’affichage.** Bêta pour les essais Fedora COSMIC. [Installer la bêta](docs/INSTALL-1.1.md) · [Validation 1.1](docs/TESTING-1.1.md).
+**1.2.0-beta.1 publiée — collections et notes.** Bêta pour les essais Fedora COSMIC. [Téléchargement](https://github.com/nabz54/nebula-paste/releases/tag/v1.2.0-beta.1) · [Validation 1.2](docs/TESTING-1.2.md).
 
 
 [English](README.en.md) · [Changelog](CHANGELOG.fr.md) · [Contribuer](CONTRIBUTING.md)

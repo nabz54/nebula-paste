@@ -37,6 +37,10 @@ Direct/sequential paste, global shortcuts, screen capture and color picking requ
 
 Sync, remote services and AI are not required. Fixes, performance, accessibility and FR/EN documentation belong in every release.
 
-## 1.2 delivery in preparation
+## 1.2 delivery — beta released September 27, 2026
 
 Persistent notes, unified search library, per-collection views, bulk filing and undo are implemented on `feature/1.2-notes`. See [TESTING-1.2](TESTING-1.2.en.md). Editing uses a dedicated screen; Kanban remains a later roadmap item.
+
+## 1.3 delivery in preparation
+
+Text actions, ordered assembly, copy queue, quick favorites and configurable internal shortcuts. Global shortcuts use commands manually assigned in COSMIC. Automatic sequential paste is not promised: the queue copies one item, then the user pastes with Ctrl+V. [1.3 validation](TESTING-1.3.en.md).

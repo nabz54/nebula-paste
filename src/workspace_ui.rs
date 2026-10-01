@@ -13,6 +13,7 @@ struct Entry {
     id: String,
     title: String,
     body: String,
+    source: String,
     collection: String,
     pinned: bool,
     can_convert: bool,
@@ -35,6 +36,8 @@ impl Entry {
 }
 #[derive(Debug, Clone)]
 pub enum Message {
+    Activate(String),
+    Actions,
     Search(String),
     Scope(u8),
     Collection(String),
@@ -57,6 +60,8 @@ pub enum Message {
     Manage,
 }
 pub enum Effect {
+    Activate(String),
+    Actions(Vec<nebula_paste::text_actions::Part>),
     None,
     NewNote,
     Notes,
@@ -114,6 +119,7 @@ impl State {
                 kind: 0,
                 id: c.id.clone(),
                 title: c.title.clone(),
+                source: c.text.clone(),
                 body: format!(
                     "{}\n{}",
                     c.text,
@@ -128,6 +134,7 @@ impl State {
             kind: 1,
             id: n.id,
             title: n.title,
+            source: n.body.clone(),
             body: n.body,
             collection: n.collection,
             pinned: false,
@@ -137,6 +144,7 @@ impl State {
             kind: 2,
             id: n.id,
             title: n.title,
+            source: n.body.clone(),
             body: n.body,
             collection: n.collection,
             pinned: false,
@@ -182,6 +190,30 @@ impl State {
     }
     pub fn update(&mut self, message: Message, store: &Store) -> Result<Effect, String> {
         match message {
+            Message::Activate(id) => return Ok(Effect::Activate(id)),
+            Message::Actions => {
+                let entries: Vec<_> = self
+                    .filtered()
+                    .into_iter()
+                    .filter(|e| e.key().is_some_and(|k| self.selected.contains(&k)))
+                    .collect();
+                if entries.iter().any(|e| e.kind == 0 && !e.can_convert) {
+                    return Err(tr!(
+                        "Sélectionne uniquement des copies textuelles et des notes.",
+                        "Select only text clips and notes."
+                    )
+                    .into());
+                }
+                return Ok(Effect::Actions(
+                    entries
+                        .into_iter()
+                        .map(|e| nebula_paste::text_actions::Part {
+                            title: e.title.clone(),
+                            text: e.source.clone(),
+                        })
+                        .collect(),
+                ));
+            }
             Message::Search(s) => {
                 self.query = s;
                 self.reset();
@@ -360,6 +392,9 @@ impl State {
                 )))
                 .push(
                     widget::flex_row(vec![
+                        widget::button::text(tr!("Actions…", "Actions…"))
+                            .on_press(Message::Actions)
+                            .into(),
                         widget::button::text(tr!("Annuler la sélection", "Clear selection"))
                             .on_press(Message::ClearSelection)
                             .into(),
@@ -464,6 +499,13 @@ impl State {
                 );
             }
             let actions = widget::flex_row(actions).spacing(4);
+            let heading: Element<'a, Message> = if e.kind == 0 {
+                widget::button::text(title)
+                    .on_press(Message::Activate(e.id.clone()))
+                    .into()
+            } else {
+                widget::text(title).size(14).into()
+            };
             let content: Element<'a, Message> = if self.cards {
                 let preview: Element<'a, Message> =
                     if let Some(image) = images.get(&e.id).filter(|_| e.kind == 0) {
@@ -480,7 +522,7 @@ impl State {
                 widget::column([])
                     .spacing(6)
                     .push(widget::text(label).size(11))
-                    .push(widget::container(widget::text(title).size(15)).height(42))
+                    .push(widget::container(heading).height(42))
                     .push(widget::container(preview).height(96))
                     .push(actions)
                     .into()
@@ -488,7 +530,7 @@ impl State {
                 let info = widget::column([])
                     .spacing(4)
                     .push(widget::text(label).size(11))
-                    .push(widget::text(title).size(14));
+                    .push(heading);
                 if width >= 720.0 {
                     widget::row([])
                         .spacing(8)
@@ -587,5 +629,31 @@ mod tests {
         assert_eq!(store.templates().unwrap().len(), 1);
         state.update(Message::Undo, &store).unwrap();
         assert_eq!(store.notes().unwrap().len(), 1);
+    }
+}
+
+#[cfg(test)]
+mod action_tests {
+    use super::*;
+    #[test]
+    fn assembly_uses_original_text_not_search_ocr_or_added_newline() {
+        let mut store = Store::in_memory().unwrap();
+        let c = Clip::new("text/plain".into(), b"keep exact".to_vec(), 1).unwrap();
+        store.insert(&c).unwrap();
+        let mut state = State::default();
+        state
+            .refresh(
+                &store,
+                &store.load().unwrap(),
+                &HashMap::from([(c.id.clone(), "search only".into())]),
+            )
+            .unwrap();
+        state
+            .update(Message::Select(Key::Clip(c.id)), &store)
+            .unwrap();
+        match state.update(Message::Actions, &store).unwrap() {
+            Effect::Actions(p) => assert_eq!(p[0].text, "keep exact"),
+            _ => panic!("actions expected"),
+        };
     }
 }

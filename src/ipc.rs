@@ -62,3 +62,21 @@ pub fn history() -> io::Result<()> {
     socket.send_to(b"history", directory()?.join("control.sock"))?;
     Ok(())
 }
+
+/// Explicit commands for shortcuts configured by the user in COSMIC.
+pub fn action(command: &str) -> io::Result<()> {
+    if !matches!(
+        command,
+        "queue-next"
+            | "queue-back"
+            | "favorite-1"
+            | "favorite-2"
+            | "favorite-3"
+            | "favorite-4"
+            | "favorite-5"
+    ) {
+        return Err(io::Error::other("Invalid action"));
+    }
+    UnixDatagram::unbound()?.send_to(command.as_bytes(), directory()?.join("control.sock"))?;
+    Ok(())
+}

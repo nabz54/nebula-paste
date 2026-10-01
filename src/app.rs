@@ -62,6 +62,8 @@ pub struct App {
     clips: Vec<Clip>,
     collections: Vec<String>,
     collections_open: bool,
+    actions_open: bool,
+    action_state: crate::action_ui::State,
     notes_open: bool,
     notes: crate::note_ui::State,
     workspace_open: bool,
@@ -122,6 +124,13 @@ struct Undo {
 pub enum Message {
     Toggle,
     ReloadAppearance,
+    ActionsOpen,
+    Action(crate::action_ui::Message),
+    ActionsLoad(Vec<nebula_paste::text_actions::Part>),
+    ActionsFromClip(String),
+    ActionCopied(Result<(), String>, bool),
+    ActivateClip(String),
+    Shortcut(String, bool),
     Notes(bool),
     Note(crate::note_ui::Message),
     NoteFromClip(String),
@@ -298,7 +307,12 @@ impl App {
         self.refresh();
     }
     fn sidebar_width(&self) -> f32 {
-        if !self.notes_open && !self.workspace_open && !self.is_popup() && self.width() >= 720.0 {
+        if !self.actions_open
+            && !self.notes_open
+            && !self.workspace_open
+            && !self.is_popup()
+            && self.width() >= 720.0
+        {
             192.0
         } else {
             0.0
@@ -690,6 +704,27 @@ impl App {
         }
         Task::none()
     }
+    fn action_copy(&mut self, clip: Clip, queue: bool) -> Task<cosmic::Action<Message>> {
+        if self.demo {
+            self.action_state.notice =
+                tr!("Démonstration : copie désactivée", "Demo: copying disabled").into();
+            return Task::none();
+        }
+        if self.copying {
+            return Task::none();
+        }
+        self.copying = true;
+        self.action_state.busy = true;
+        Task::perform(
+            async move {
+                tokio::task::spawn_blocking(move || clipboard::copy(clip))
+                    .await
+                    .map_err(|e| e.to_string())
+                    .and_then(|r| r)
+            },
+            move |r| cosmic::Action::App(Message::ActionCopied(r, queue)),
+        )
+    }
     /// Panneau de préférences. Chaque bouton fait défiler des valeurs connues :
     /// aucune saisie libre, donc aucune valeur invalide à écrire sur disque.
     fn view_settings(&self) -> Element<'_, Message> {
@@ -721,6 +756,7 @@ impl App {
         widget::container(
             widget::column([])
                 .push(widget::text(tr!("Préférences", "Preferences")).size(15).class(skin::TEXT))
+                .push(widget::button::text(tr!("Actions et clavier…", "Actions and keyboard…")).on_press(Message::ActionsOpen))
                 .push(row(tr!("Cartes du bandeau", "Shelf cards"), [tr!("Petites", "Small"), tr!("Moyennes", "Medium"), tr!("Grandes", "Large")][self.settings.card_size as usize].into(), Message::CardSize))
                 .push(row(tr!("Filtres du bandeau", "Shelf filters"), if self.settings.show_filters { tr!("Affichés", "Shown") } else { tr!("Masqués", "Hidden") }.into(), Message::ShowFilters))
                 .push(row(tr!("Collections du bandeau", "Shelf collections"), if self.settings.show_collections { tr!("Affichées", "Shown") } else { tr!("Masquées", "Hidden") }.into(), Message::ShowCollections))
@@ -1032,7 +1068,7 @@ impl App {
                 .spacing(8)
                 .align_y(iced::Alignment::Center),
         )
-        .on_press(Message::Copy(clip.id.clone()))
+        .on_press(Message::ActivateClip(clip.id.clone()))
         .padding(8)
         .width(Length::Fill)
         .height(POPUP_CARD_HEIGHT)
@@ -1118,7 +1154,7 @@ impl App {
                 .spacing(10)
                 .align_y(iced::Alignment::Center),
         )
-        .on_press(Message::Copy(clip.id.clone()))
+        .on_press(Message::ActivateClip(clip.id.clone()))
         .padding(10)
         .width(Length::Fill)
         .class(skin::button(self.selected == index, 10.0, true));
@@ -1171,7 +1207,7 @@ impl App {
             )
             .spacing(9);
         let copy = widget::button::custom(body)
-            .on_press(Message::Copy(clip.id.clone()))
+            .on_press(Message::ActivateClip(clip.id.clone()))
             .padding(12)
             .width(Length::Fill)
             .class(skin::button(self.selected == index, 12.0, true));
@@ -1246,6 +1282,8 @@ impl cosmic::Application for App {
             clips: vec![],
             collections: vec![],
             collections_open: false,
+            actions_open: false,
+            action_state: Default::default(),
             notes_open: false,
             notes: crate::note_ui::State::default(),
             workspace_open: false,
@@ -1319,6 +1357,7 @@ Notes remain available after clearing history."
             );
             app.templates.refresh(store);
         }
+        app.action_state.drafts = app.settings.actions.bindings.clone();
         app.refresh();
         (app, Task::none())
     }
@@ -1459,9 +1498,16 @@ Notes remain available after clearing history."
         }
         layout = layout.push(
             widget::flex_row(vec![
+                widget::button::text(tr!("Actions", "Actions"))
+                    .class(skin::button(self.actions_open, 8.0, false))
+                    .on_press(Message::ActionsOpen)
+                    .into(),
                 widget::button::text(tr!("Copies", "Clips"))
                     .class(skin::button(
-                        !self.templates_open && !self.notes_open && !self.workspace_open,
+                        !self.templates_open
+                            && !self.notes_open
+                            && !self.workspace_open
+                            && !self.actions_open,
                         8.0,
                         false,
                     ))
@@ -1556,6 +1602,13 @@ Notes remain available after clearing history."
         if self.collections_open {
             layout = layout.push(self.view_collections());
         }
+        if self.actions_open {
+            layout = layout.push(
+                self.action_state
+                    .view(&self.settings.actions, &self.clips)
+                    .map(Message::Action),
+            );
+        }
         if self.notes_open {
             layout = layout.push(
                 self.notes
@@ -1582,6 +1635,7 @@ Notes remain available after clearing history."
             && !self.templates_open
             && !self.notes_open
             && !self.workspace_open
+            && !self.actions_open
         {
             if let Some(clip) = self
                 .detail
@@ -1653,9 +1707,16 @@ Notes remain available after clearing history."
                                 .on_press(Message::Copy(clip.id.clone())),
                             )
                             .push(
+                                widget::button::text(tr!("Actions texte…", "Text actions…"))
+                                    .on_press_maybe(
+                                        crate::action_ui::clip_part(clip)
+                                            .map(|_| Message::ActionsFromClip(clip.id.clone())),
+                                    ),
+                            )
+                            .push(
                                 widget::button::text(tr!(
-                                    "Copier en texte brut · Ctrl+Maj+C",
-                                    "Copy as plain text · Ctrl+Shift+C"
+                                    "Copier en texte brut",
+                                    "Copy as plain text"
                                 ))
                                 .class(skin::button(false, 8.0, false))
                                 .on_press_maybe(
@@ -1843,8 +1904,8 @@ Notes remain available after clearing history."
                     widget::column([])
                         .push(
                             widget::text(tr_format!(
-                                "⠿ Glisser · Ctrl+1…{} : choisir · Ctrl+Maj+C : texte brut",
-                                "⠿ Drag · Ctrl+1…{}: select · Ctrl+Shift+C: plain text",
+                                "⠿ Glisser · Ctrl+1…{} : choisir · Autres touches : Actions",
+                                "⠿ Drag · Ctrl+1…{}: select · Other shortcuts: Actions",
                                 page_size.min(MAX_SHORTCUTS)
                             ))
                             .size(11)
@@ -2114,33 +2175,50 @@ Notes remain available after clearing history."
                 };
                 match key.as_ref() {
                     Key::Named(Named::Escape) => Some(Message::Escape),
-                    Key::Character(c)
-                        if mods.control() && mods.shift() && c.eq_ignore_ascii_case("c") =>
-                    {
-                        Some(Message::PlainSelected)
-                    }
-                    Key::Character("f") if mods.control() => Some(Message::FocusSearch),
                     Key::Named(Named::ArrowRight) if mods.alt() => Some(Message::Move(true)),
                     Key::Named(Named::ArrowLeft) if mods.alt() => Some(Message::Move(false)),
                     Key::Named(Named::ArrowDown) if mods.alt() => Some(Message::MoveRow(true)),
                     Key::Named(Named::ArrowUp) if mods.alt() => Some(Message::MoveRow(false)),
-                    Key::Character(c) if mods.control() => c
-                        .parse::<usize>()
-                        .ok()
-                        .filter(|n| (1..=MAX_SHORTCUTS).contains(n))
-                        .map(|n| Message::Choose(n - 1)),
-                    Key::Character(" ")
-                        if status == iced::event::Status::Ignored
-                            && !mods.control()
+                    Key::Character(c)
+                        if mods.control()
+                            && !mods.shift()
                             && !mods.alt()
-                            && !mods.logo() =>
+                            && c.parse::<usize>().is_ok() =>
                     {
-                        Some(Message::PreviewSelected)
+                        c.parse::<usize>()
+                            .ok()
+                            .filter(|n| (1..=MAX_SHORTCUTS).contains(n))
+                            .map(|n| Message::Choose(n - 1))
                     }
                     Key::Named(Named::Enter) if status == iced::event::Status::Ignored => {
                         Some(Message::Enter)
                     }
-                    _ => None,
+                    _ => {
+                        let key = match key.as_ref() {
+                            Key::Character(" ") => "SPACE".to_owned(),
+                            Key::Character(c) => c.to_ascii_uppercase(),
+                            Key::Named(n) => format!("{n:?}").to_ascii_uppercase(),
+                            _ => return None,
+                        };
+                        let mut parts = Vec::new();
+                        if mods.control() {
+                            parts.push("CTRL");
+                        }
+                        if mods.alt() {
+                            parts.push("ALT");
+                        }
+                        if mods.shift() {
+                            parts.push("SHIFT");
+                        }
+                        if mods.logo() {
+                            parts.push("SUPER");
+                        }
+                        parts.push(&key);
+                        Some(Message::Shortcut(
+                            parts.join("+"),
+                            status == iced::event::Status::Ignored,
+                        ))
+                    }
                 }
             }));
         }
@@ -2159,7 +2237,8 @@ Notes remain available after clearing history."
                 | Message::ShowFilters
                 | Message::Viewport(_)
         );
-        if (self.templates_open
+        if (self.actions_open
+            || self.templates_open
             || self.notes_open
             || self.workspace_open
             || self.settings_open
@@ -2272,7 +2351,147 @@ Notes remain available after clearing history."
                     _ => {}
                 }
             }
+            Message::Shortcut(chord, ignored) => {
+                let Some(i) = self
+                    .settings
+                    .actions
+                    .bindings
+                    .iter()
+                    .position(|b| !b.is_empty() && *b == chord)
+                else {
+                    return Task::none();
+                };
+                if i == 0 {
+                    return self.update(Message::FocusSearch);
+                }
+                if !ignored
+                    || self.notes_open
+                    || self.templates_open
+                    || self.settings_open
+                    || self.collections_open
+                    || self.clear_confirm
+                    || self.pause_menu
+                {
+                    return Task::none();
+                }
+                match i {
+                    1 => return self.update(Message::PreviewSelected),
+                    2 => return self.update(Message::PlainSelected),
+                    3 => return self.update(Message::ActionsOpen),
+                    4 => return self.update(Message::Action(crate::action_ui::Message::Next)),
+                    5 => return self.update(Message::Action(crate::action_ui::Message::Previous)),
+                    6 => {
+                        let _ = self.update(Message::Templates(false));
+                        return self.update(Message::Favorites(true));
+                    }
+                    7..=11 => {
+                        return self
+                            .update(Message::Action(crate::action_ui::Message::Favorite(i - 7)));
+                    }
+                    _ => {}
+                }
+            }
+            Message::ActivateClip(id) => {
+                let surface = if !self.is_popup() {
+                    2
+                } else if self.compact_popup() {
+                    0
+                } else {
+                    1
+                };
+                match self.settings.actions.clicks[surface] {
+                    0 => return self.copy(&id),
+                    1 => return self.update(Message::Detail(Some(id))),
+                    _ => {
+                        if let Some(i) = self.filtered().iter().position(|c| c.id == id) {
+                            let size = self.page_size();
+                            self.page = i / size;
+                            self.selected = i % size;
+                        }
+                    }
+                }
+            }
+            Message::ActionsOpen => {
+                self.actions_open = true;
+                self.workspace_open = false;
+                self.notes_open = false;
+                self.templates_open = false;
+                self.settings_open = false;
+                self.collections_open = false;
+                self.detail = None;
+            }
+            Message::ActionsFromClip(id) => {
+                if let Some(part) = self
+                    .clips
+                    .iter()
+                    .find(|c| c.id == id)
+                    .and_then(crate::action_ui::clip_part)
+                {
+                    return self.update(Message::ActionsLoad(vec![part]));
+                }
+            }
+            Message::ActionsLoad(parts) => match self.action_state.load(parts) {
+                Ok(()) => return self.update(Message::ActionsOpen),
+                Err(e) => {
+                    self.status = e.clone();
+                    self.workspace.notice = e;
+                }
+            },
+            Message::Action(msg) => {
+                use crate::action_ui::Effect as E;
+                match self
+                    .action_state
+                    .update(msg, &mut self.settings.actions, &self.clips)
+                {
+                    Err(e) => {
+                        self.status = e.clone();
+                        self.action_state.notice = e;
+                    }
+                    Ok(E::None) => {}
+                    Ok(E::SavePreferences) => {
+                        self.save_settings();
+                    }
+                    Ok(E::Note(text)) => {
+                        self.notes
+                            .from_clip(tr!("Texte assemblé", "Assembled text"), &text, "");
+                        return self.update(Message::Notes(true));
+                    }
+                    Ok(E::Favorite(id)) => {
+                        if let Some(clip) = self.clips.iter().find(|c| c.id == id).cloned() {
+                            return self.action_copy(clip, false);
+                        }
+                    }
+                    Ok(E::Copy(text, queue)) => {
+                        match Clip::new(
+                            "text/plain;charset=utf-8".into(),
+                            text.into_bytes(),
+                            model::now(),
+                        ) {
+                            Ok(clip) => return self.action_copy(clip, queue),
+                            Err(e) => self.action_state.notice = e,
+                        }
+                    }
+                }
+            }
+            Message::ActionCopied(result, queue) => {
+                self.copying = false;
+                self.action_state.busy = false;
+                if queue {
+                    self.action_state.queue.complete(result.is_ok());
+                }
+                let text = match result {
+                    Ok(()) => tr!(
+                        "Copié — colle avec Ctrl+V dans l’application cible.",
+                        "Copied — press Ctrl+V in the target application."
+                    )
+                    .into(),
+                    Err(e) => e,
+                };
+                self.action_state.notice = text.clone();
+                self.status = text;
+            }
             Message::Notes(open) => {
+                self.actions_open = false;
                 self.notes_open = open;
                 self.templates_open = false;
                 self.workspace_open = false;
@@ -2373,6 +2592,7 @@ Notes remain available after clearing history."
                 }
             }
             Message::Workspace(open) => {
+                self.actions_open = false;
                 self.workspace_open = open;
                 self.notes_open = false;
                 self.templates_open = false;
@@ -2389,6 +2609,21 @@ Notes remain available after clearing history."
                 let changed = matches!(&msg, W::Move | W::Delete | W::Undo | W::Order(_, _));
                 match self.workspace.update(msg, store) {
                     Err(e) => self.workspace.notice = e,
+                    Ok(E::Activate(id)) => match self.settings.actions.clicks[2] {
+                        0 => return self.copy(&id),
+                        1 => {
+                            self.workspace_open = false;
+                            return self.update(Message::Detail(Some(id)));
+                        }
+                        _ => {
+                            return self.update(Message::WorkspaceEvent(
+                                crate::workspace_ui::Message::Select(
+                                    nebula_paste::workspace::Key::Clip(id),
+                                ),
+                            ));
+                        }
+                    },
+                    Ok(E::Actions(parts)) => return self.update(Message::ActionsLoad(parts)),
                     Ok(E::None) => {
                         if changed {
                             self.refresh();
@@ -2414,6 +2649,7 @@ Notes remain available after clearing history."
                 }
             }
             Message::Templates(open) => {
+                self.actions_open = false;
                 self.notes_open = false;
                 self.workspace_open = false;
                 self.templates_open = open;
@@ -2597,6 +2833,7 @@ Notes remain available after clearing history."
                     .chain(widget::text_input::focus(self.search_id.clone()));
             }
             Message::Collections(open) => {
+                self.actions_open = false;
                 self.templates_open = false;
                 self.notes_open = false;
                 self.workspace_open = false;
@@ -2718,6 +2955,10 @@ Notes remain available after clearing history."
                 }
             }
             Message::FocusSearch => {
+                if self.actions_open {
+                    let _ = self.update(Message::Workspace(true));
+                    return widget::text_input::focus(self.workspace.search_id.clone());
+                }
                 if self.notes_open {
                     return widget::text_input::focus(self.notes.search_id.clone());
                 }
@@ -2733,6 +2974,9 @@ Notes remain available after clearing history."
                 return widget::text_input::focus(self.search_id.clone());
             }
             Message::Escape => {
+                if self.actions_open {
+                    return self.update(Message::Workspace(true));
+                }
                 if self.notes_open {
                     if self.notes.at_root() {
                         return self.update(Message::Workspace(true));
@@ -2836,6 +3080,7 @@ Notes remain available after clearing history."
                 ));
             }
             Message::Settings(open) => {
+                self.actions_open = false;
                 self.templates_open = false;
                 self.notes_open = false;
                 self.workspace_open = false;
@@ -2958,6 +3203,7 @@ Notes remain available after clearing history."
                 }
             }
             Message::OpenHistory => {
+                self.actions_open = false;
                 self.workspace_open = true;
                 self.notes_open = false;
                 self.templates_open = false;
@@ -3123,6 +3369,33 @@ Notes remain available after clearing history."
                     match &bytes[..count] {
                         b"toggle" => return self.update(Message::Toggle),
                         b"history" => return self.update(Message::OpenHistory),
+                        b"queue-next" => {
+                            return self.update(Message::Action(crate::action_ui::Message::Next));
+                        }
+                        b"queue-back" => {
+                            return self
+                                .update(Message::Action(crate::action_ui::Message::Previous));
+                        }
+                        b"favorite-1" => {
+                            return self
+                                .update(Message::Action(crate::action_ui::Message::Favorite(0)));
+                        }
+                        b"favorite-2" => {
+                            return self
+                                .update(Message::Action(crate::action_ui::Message::Favorite(1)));
+                        }
+                        b"favorite-3" => {
+                            return self
+                                .update(Message::Action(crate::action_ui::Message::Favorite(2)));
+                        }
+                        b"favorite-4" => {
+                            return self
+                                .update(Message::Action(crate::action_ui::Message::Favorite(3)));
+                        }
+                        b"favorite-5" => {
+                            return self
+                                .update(Message::Action(crate::action_ui::Message::Favorite(4)));
+                        }
                         _ => {}
                     }
                 }
@@ -3836,5 +4109,46 @@ mod tests {
         let _ = app.update(Message::WindowResized(app.history.unwrap(), 520.0));
         assert_eq!(app.width(), 520.0);
         assert_eq!(app.sidebar_width(), 0.0);
+    }
+}
+
+#[cfg(test)]
+mod action_tests {
+    use super::*;
+    use cosmic::Application;
+    #[test]
+    fn failed_queue_copy_does_not_advance_or_leave_busy_state() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        let p = nebula_paste::text_actions::Part {
+            title: "A".into(),
+            text: "a".into(),
+        };
+        app.action_state
+            .queue
+            .replace(&[p], Default::default())
+            .unwrap();
+        app.copying = true;
+        app.action_state.busy = true;
+        let _ = app.update(Message::ActionCopied(Err("failure".into()), true));
+        assert_eq!(app.action_state.queue.next, 0);
+        assert!(!app.copying);
+        assert!(!app.action_state.busy);
+        let _ = app.update(Message::ActionCopied(Ok(()), true));
+        assert_eq!(app.action_state.queue.next, 1);
+    }
+    #[test]
+    fn shortcuts_do_not_copy_while_editing_and_custom_bindings_apply() {
+        let (mut app, _) = App::init(cosmic::Core::default(), Mode::Preview);
+        app.notes_open = true;
+        let _ = app.update(Message::Shortcut("CTRL+SHIFT+A".into(), true));
+        assert!(!app.actions_open);
+        app.notes_open = false;
+        app.settings.actions.bind(3, "Ctrl+Shift+K").unwrap();
+        let _ = app.update(Message::Shortcut("CTRL+SHIFT+A".into(), true));
+        assert!(!app.actions_open);
+        let _ = app.update(Message::Shortcut("CTRL+SHIFT+K".into(), false));
+        assert!(!app.actions_open);
+        let _ = app.update(Message::Shortcut("CTRL+SHIFT+K".into(), true));
+        assert!(app.actions_open);
     }
 }

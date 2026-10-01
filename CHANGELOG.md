@@ -2,7 +2,17 @@
 
 [Français](CHANGELOG.fr.md)
 
-## 1.2.0-beta.1 — Collections and notes (in preparation)
+## 1.3.0-beta.1 — Actions and shortcuts (in preparation)
+
+- Preview text transforms: upper/lowercase, trim whitespace and remove blank lines; originals preserved.
+- Ordered text clip/note assembly with configurable separators; copy output or create a note.
+- Session copy queue with progress, previous item and advancement only after successful copying.
+- Five persistent favorite slots by ID; missing favorites never silently fall back to another clip.
+- Configurable internal shortcuts, explicit conflicts, typing protection and per-surface click behavior.
+- IPC commands for manually configured COSMIC global shortcuts; no automatic keystroke injection.
+- Tests, native previews and validation guide [EN](docs/TESTING-1.3.en.md) / [FR](docs/TESTING-1.3.md).
+
+## 1.2.0-beta.1 — Collections and notes — 2026-09-27
 
 - Unified library searching clips, notes and templates.
 - Persistent literal notes: create, edit, convert a text clip and use separate JSON import/export.

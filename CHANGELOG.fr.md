@@ -2,7 +2,17 @@
 
 [English](CHANGELOG.md)
 
-## 1.2.0-beta.1 — Collections et notes (en préparation)
+## 1.3.0-beta.1 — Actions et raccourcis (en préparation)
+
+- Transformations de texte avec aperçu : majuscules, minuscules, nettoyage des espaces et lignes vides ; originaux conservés.
+- Assemblage ordonné de copies textuelles et notes avec séparateur configurable ; copie ou création d’une note.
+- File de copie en mémoire, compteur, retour arrière et progression uniquement après réussite.
+- Cinq favoris rapides persistants par identifiant ; aucune substitution d’un favori absent.
+- Raccourcis internes personnalisables, conflits explicites, protection de la saisie et comportement au clic par surface.
+- Commandes IPC pour les raccourcis globaux configurés manuellement dans COSMIC ; copie sans injection automatique de touches.
+- Tests et rendus natifs, guide de validation [FR](docs/TESTING-1.3.md) / [EN](docs/TESTING-1.3.en.md).
+
+## 1.2.0-beta.1 — Collections et notes — 2026-09-27
 
 - Bibliothèque commune avec recherche dans les copies, notes et modèles.
 - Notes textuelles persistantes : création, édition, conversion d’une copie et export/import JSON distinct.

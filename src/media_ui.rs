@@ -222,7 +222,7 @@ impl State {
         }
         if self.text_ready {
             body = body.push(
-                widget::text_editor(&self.text)
+                widget::text_editor::text_editor(&self.text)
                     .height(150)
                     .on_action(Message::EditText),
             );

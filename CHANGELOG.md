@@ -2,11 +2,16 @@
 
 [Français](CHANGELOG.fr.md)
 
-## 1.4 — In development: colors by type
+## 1.4.0-beta.1 — Capture, images and colors (in preparation)
 
-- Persistent Subtle / Vivid / Off setting, consistent type badges and rails in the compact applet, shelf, history, library and notes. Native COSMIC surfaces and selection remain intact. Accessible labels in both themes; color clips keep their actual swatch. Capture/OCR/picker work is not included in this visual increment.
+- Interactive screenshot and color picker through native desktop dialogs; local-image import fallback.
+- Embedded OCR with editable output before copying or creating a note.
+- Non-destructive image workbench: crop, locked/free resizing, PNG/JPEG/WebP, preview, copying, history and no-overwrite export.
+- Persistent per-type colors supporting light/dark themes.
+- COSMIC commands `--capture`, `--capture-text`, `--pick-color`; cancellation never inserts history.
+- Validation: [English guide](docs/TESTING-1.4.en.md) / [FR](docs/TESTING-1.4.md). Real-session COSMIC checks still required.
 
-## 1.3.0-beta.1 — Actions and shortcuts (in preparation)
+## 1.3.0-beta.1 — Actions and shortcuts — 2026-10-01
 
 - Preview text transforms: upper/lowercase, trim whitespace and remove blank lines; originals preserved.
 - Ordered text clip/note assembly with configurable separators; copy output or create a note.

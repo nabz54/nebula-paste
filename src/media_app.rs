@@ -3,6 +3,7 @@ use crate::{
     capture::Capture,
     media_ui::{self, Message as M},
 };
+use cosmic::Application;
 use std::sync::Arc;
 impl App {
     fn show_media(&mut self) -> Task<cosmic::Action<Message>> {

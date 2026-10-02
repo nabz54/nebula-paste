@@ -59,6 +59,9 @@ bash scripts/check-embedded-ocr.sh target/release/nebula-paste
 %{_datadir}/icons/hicolor/scalable/apps/io.github.nebulapaste.NebulaPaste-symbolic.svg
 
 %changelog
+* Fri Oct 02 2026 Nebula Paste maintainers - 1.4.0~beta.1-1
+- Native capture, picker, editable OCR, image workbench and type colors
+
 * Mon Sep 28 2026 Nebula Paste contributors - 1.3.0~beta.1-1
 - Text actions, assembly, copy queue and configurable shortcuts.
 

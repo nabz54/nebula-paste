@@ -44,3 +44,7 @@ Persistent notes, unified search library, per-collection views, bulk filing and 
 ## 1.3 delivery in preparation
 
 Text actions, ordered assembly, copy queue, quick favorites and configurable internal shortcuts. Global shortcuts use commands manually assigned in COSMIC. Automatic sequential paste is not promised: the queue copies one item, then the user pastes with Ctrl+V. [1.3 validation](TESTING-1.3.en.md).
+
+## 1.4 delivery in preparation
+
+Interactive capture, editable OCR, color picker, image workbench and type colors are implemented in PR #13. Native Fedora COSMIC validation remains required: [guide](TESTING-1.4.en.md). Video preview is deferred and excluded from this beta.

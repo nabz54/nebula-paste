@@ -1,3 +1,5 @@
+#[path = "media_app.rs"]
+mod media_app;
 #[path = "ribbon.rs"]
 mod ribbon;
 
@@ -62,6 +64,8 @@ pub struct App {
     clips: Vec<Clip>,
     collections: Vec<String>,
     collections_open: bool,
+    media_open: bool,
+    media: crate::media_ui::State,
     actions_open: bool,
     action_state: crate::action_ui::State,
     notes_open: bool,
@@ -124,6 +128,9 @@ struct Undo {
 pub enum Message {
     Toggle,
     ReloadAppearance,
+    MediaOpen,
+    MediaFromClip(String),
+    Media(crate::media_ui::Message),
     ActionsOpen,
     Action(crate::action_ui::Message),
     ActionsLoad(Vec<nebula_paste::text_actions::Part>),
@@ -144,6 +151,7 @@ pub enum Message {
     PreviewSelected,
     ShelfScrolled(f32),
     CardSize,
+    TypeColors,
     ShowFilters,
     ShowCollections,
     SortOrder,
@@ -307,7 +315,8 @@ impl App {
         self.refresh();
     }
     fn sidebar_width(&self) -> f32 {
-        if !self.actions_open
+        if !self.media_open
+            && !self.actions_open
             && !self.notes_open
             && !self.workspace_open
             && !self.is_popup()
@@ -326,6 +335,7 @@ impl App {
     }
     fn index_next(&mut self) -> Task<cosmic::Action<Message>> {
         if !self.settings.ocr_indexing
+            || self.media.busy
             || self.ocr_busy
             || self.index_busy.is_some()
             || (self.monitor.paused() && !self.demo)
@@ -757,6 +767,7 @@ impl App {
             widget::column([])
                 .push(widget::text(tr!("Préférences", "Preferences")).size(15).class(skin::TEXT))
                 .push(widget::button::text(tr!("Actions et clavier…", "Actions and keyboard…")).on_press(Message::ActionsOpen))
+                .push(row(tr!("Couleurs par type", "Colors by type"), self.settings.type_colors.label().into(), Message::TypeColors))
                 .push(row(tr!("Cartes du bandeau", "Shelf cards"), [tr!("Petites", "Small"), tr!("Moyennes", "Medium"), tr!("Grandes", "Large")][self.settings.card_size as usize].into(), Message::CardSize))
                 .push(row(tr!("Filtres du bandeau", "Shelf filters"), if self.settings.show_filters { tr!("Affichés", "Shown") } else { tr!("Masqués", "Hidden") }.into(), Message::ShowFilters))
                 .push(row(tr!("Collections du bandeau", "Shelf collections"), if self.settings.show_collections { tr!("Affichées", "Shown") } else { tr!("Masquées", "Hidden") }.into(), Message::ShowCollections))
@@ -1047,17 +1058,29 @@ impl App {
                     .clip(true),
             )
             .push(
-                widget::container(
-                    widget::text(format!("{} · ⌃{}", model::age(clip.timestamp), index + 1))
-                        .size(11),
-                )
-                .height(16)
+                widget::container(skin::type_badge(
+                    format!(
+                        "{} · {} · ⌃{}",
+                        clip.kind.label(),
+                        model::age(clip.timestamp),
+                        index + 1
+                    ),
+                    clip.kind.icon(),
+                    skin::TypeTint::clip(clip),
+                    self.settings.type_colors,
+                ))
+                .height(20)
                 .clip(true),
             )
             .spacing(4)
             .width(Length::Fill);
         let copy = widget::button::custom(
             widget::row([])
+                .push(
+                    widget::container(widget::Space::new().width(3).height(40)).class(
+                        skin::type_rail(skin::TypeTint::clip(clip), self.settings.type_colors),
+                    ),
+                )
                 .push(
                     widget::container(self.preview(clip, 40.0))
                         .width(44)
@@ -1072,7 +1095,12 @@ impl App {
         .padding(8)
         .width(Length::Fill)
         .height(POPUP_CARD_HEIGHT)
-        .class(skin::button(self.selected == index, 8.0, true));
+        .class(skin::type_button(
+            self.selected == index,
+            skin::TypeTint::clip(clip),
+            self.settings.type_colors,
+            true,
+        ));
         let actions = widget::column([])
             .push(skin::hint(
                 widget::button::custom(widget::text(if clip.pinned { "★" } else { "☆" }).size(14))
@@ -1108,8 +1136,12 @@ impl App {
         let summary = widget::column([])
             .push(
                 widget::row([])
-                    .push(skin::icon(clip.kind.icon()).icon().size(13))
-                    .push(widget::text(clip.kind.label()).size(11).class(skin::ACCENT))
+                    .push(skin::type_badge(
+                        clip.kind.label(),
+                        clip.kind.icon(),
+                        skin::TypeTint::clip(clip),
+                        self.settings.type_colors,
+                    ))
                     .push(widget::Space::new().width(Length::Fill))
                     .push(
                         widget::text(if index < MAX_SHORTCUTS {
@@ -1146,6 +1178,11 @@ impl App {
         let copy = widget::button::custom(
             widget::row([])
                 .push(
+                    widget::container(widget::Space::new().width(3).height(40)).class(
+                        skin::type_rail(skin::TypeTint::clip(clip), self.settings.type_colors),
+                    ),
+                )
+                .push(
                     widget::container(self.preview(clip, 54.0))
                         .width(76)
                         .clip(true),
@@ -1157,7 +1194,12 @@ impl App {
         .on_press(Message::ActivateClip(clip.id.clone()))
         .padding(10)
         .width(Length::Fill)
-        .class(skin::button(self.selected == index, 10.0, true));
+        .class(skin::type_button(
+            self.selected == index,
+            skin::TypeTint::clip(clip),
+            self.settings.type_colors,
+            true,
+        ));
         widget::column([])
             .push(copy)
             .push(self.actions(clip, true))
@@ -1166,8 +1208,12 @@ impl App {
     }
     fn card_grid<'a>(&self, clip: &'a Clip, index: usize) -> Element<'a, Message> {
         let header = widget::row([])
-            .push(skin::icon(clip.kind.icon()).icon().size(14))
-            .push(widget::text(clip.kind.label()).size(11).class(skin::ACCENT))
+            .push(skin::type_badge(
+                clip.kind.label(),
+                clip.kind.icon(),
+                skin::TypeTint::clip(clip),
+                self.settings.type_colors,
+            ))
             .push(widget::Space::new().width(Length::Fill))
             .push(
                 widget::text(if index < MAX_SHORTCUTS {
@@ -1183,7 +1229,10 @@ impl App {
             .push(
                 widget::container(widget::Space::new().height(3))
                     .width(Length::Fill)
-                    .class(cosmic::theme::Container::Primary),
+                    .class(skin::type_rail(
+                        skin::TypeTint::clip(clip),
+                        self.settings.type_colors,
+                    )),
             )
             .push(header)
             .push(self.preview(clip, 124.0))
@@ -1210,7 +1259,12 @@ impl App {
             .on_press(Message::ActivateClip(clip.id.clone()))
             .padding(12)
             .width(Length::Fill)
-            .class(skin::button(self.selected == index, 12.0, true));
+            .class(skin::type_button(
+                self.selected == index,
+                skin::TypeTint::clip(clip),
+                self.settings.type_colors,
+                false,
+            ));
         widget::column([])
             .push(copy)
             .push(self.actions(clip, false))
@@ -1282,6 +1336,8 @@ impl cosmic::Application for App {
             clips: vec![],
             collections: vec![],
             collections_open: false,
+            media_open: false,
+            media: Default::default(),
             actions_open: false,
             action_state: Default::default(),
             notes_open: false,
@@ -1498,6 +1554,10 @@ Notes remain available after clearing history."
         }
         layout = layout.push(
             widget::flex_row(vec![
+                widget::button::text(tr!("Capture", "Capture"))
+                    .class(skin::button(self.media_open, 8.0, false))
+                    .on_press(Message::MediaOpen)
+                    .into(),
                 widget::button::text(tr!("Actions", "Actions"))
                     .class(skin::button(self.actions_open, 8.0, false))
                     .on_press(Message::ActionsOpen)
@@ -1507,7 +1567,8 @@ Notes remain available after clearing history."
                         !self.templates_open
                             && !self.notes_open
                             && !self.workspace_open
-                            && !self.actions_open,
+                            && !self.actions_open
+                            && !self.media_open,
                         8.0,
                         false,
                     ))
@@ -1602,6 +1663,9 @@ Notes remain available after clearing history."
         if self.collections_open {
             layout = layout.push(self.view_collections());
         }
+        if self.media_open {
+            layout = layout.push(self.media.view().map(Message::Media));
+        }
         if self.actions_open {
             layout = layout.push(
                 self.action_state
@@ -1612,14 +1676,18 @@ Notes remain available after clearing history."
         if self.notes_open {
             layout = layout.push(
                 self.notes
-                    .view(&self.collections, compact)
+                    .view(&self.collections, compact, self.settings.type_colors)
                     .map(Message::Note),
             );
         }
         if self.workspace_open {
             layout = layout.push(
                 self.workspace
-                    .view(self.width() - 36.0, &self.thumbnails)
+                    .view(
+                        self.width() - 36.0,
+                        &self.thumbnails,
+                        self.settings.type_colors,
+                    )
                     .map(Message::WorkspaceEvent),
             );
         }
@@ -1636,6 +1704,7 @@ Notes remain available after clearing history."
             && !self.notes_open
             && !self.workspace_open
             && !self.actions_open
+            && !self.media_open
         {
             if let Some(clip) = self
                 .detail
@@ -1735,6 +1804,10 @@ Notes remain available after clearing history."
                     );
                 }
                 if clip.kind == Kind::Image {
+                    layout = layout.push(
+                        widget::button::standard(tr!("Retoucher / capturer…", "Image workbench…"))
+                            .on_press(Message::MediaFromClip(clip.id.clone())),
+                    );
                     if let Some(text) = self.image_index.get(&clip.id) {
                         layout = layout
                             .push(
@@ -2225,6 +2298,17 @@ Notes remain available after clearing history."
         Subscription::batch(subscriptions)
     }
     fn update(&mut self, message: Message) -> Task<cosmic::Action<Message>> {
+        if matches!(
+            &message,
+            Message::ActionsOpen
+                | Message::Templates(_)
+                | Message::Notes(_)
+                | Message::Workspace(_)
+                | Message::Settings(true)
+                | Message::Collections(true)
+        ) {
+            self.media_open = false;
+        }
         let was_ribbon = self.ribbon_visible();
         let reset_shelf = matches!(
             &message,
@@ -2237,7 +2321,8 @@ Notes remain available after clearing history."
                 | Message::ShowFilters
                 | Message::Viewport(_)
         );
-        if (self.actions_open
+        if (self.media_open
+            || self.actions_open
             || self.templates_open
             || self.notes_open
             || self.workspace_open
@@ -2258,6 +2343,9 @@ Notes remain available after clearing history."
             return Task::none();
         }
         match message {
+            Message::MediaOpen => return self.open_media(),
+            Message::MediaFromClip(id) => return self.media_from_clip(id),
+            Message::Media(msg) => return self.update_media(msg),
             Message::Data(msg) => {
                 use crate::data_ui::Message as D;
                 match msg {
@@ -2365,6 +2453,7 @@ Notes remain available after clearing history."
                     return self.update(Message::FocusSearch);
                 }
                 if !ignored
+                    || self.media_open
                     || self.notes_open
                     || self.templates_open
                     || self.settings_open
@@ -2773,6 +2862,10 @@ Notes remain available after clearing history."
                     }
                 }
             }
+            Message::TypeColors => {
+                self.settings.type_colors = self.settings.type_colors.next();
+                self.save_settings();
+            }
             Message::CardSize => {
                 self.settings.card_size = (self.settings.card_size + 1) % 3;
                 self.reset();
@@ -2974,6 +3067,9 @@ Notes remain available after clearing history."
                 return widget::text_input::focus(self.search_id.clone());
             }
             Message::Escape => {
+                if self.media_open {
+                    return self.update(Message::Workspace(true));
+                }
                 if self.actions_open {
                     return self.update(Message::Workspace(true));
                 }
@@ -3204,7 +3300,7 @@ Notes remain available after clearing history."
             }
             Message::OpenHistory => {
                 self.actions_open = false;
-                self.workspace_open = true;
+                self.workspace_open = !self.media_open;
                 self.notes_open = false;
                 self.templates_open = false;
                 self.settings_open = false;
@@ -3369,6 +3465,21 @@ Notes remain available after clearing history."
                     match &bytes[..count] {
                         b"toggle" => return self.update(Message::Toggle),
                         b"history" => return self.update(Message::OpenHistory),
+                        b"capture" => {
+                            return self.update(Message::Media(crate::media_ui::Message::Capture(
+                                crate::capture::Capture::Image,
+                            )));
+                        }
+                        b"capture-text" => {
+                            return self.update(Message::Media(crate::media_ui::Message::Capture(
+                                crate::capture::Capture::Text,
+                            )));
+                        }
+                        b"pick-color" => {
+                            return self.update(Message::Media(crate::media_ui::Message::Capture(
+                                crate::capture::Capture::Color,
+                            )));
+                        }
                         b"queue-next" => {
                             return self.update(Message::Action(crate::action_ui::Message::Next));
                         }

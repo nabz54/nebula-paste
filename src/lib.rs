@@ -13,3 +13,5 @@ pub mod notes;
 pub mod workspace;
 
 pub mod text_actions;
+
+pub mod imaging;

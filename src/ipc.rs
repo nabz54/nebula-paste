@@ -67,7 +67,10 @@ pub fn history() -> io::Result<()> {
 pub fn action(command: &str) -> io::Result<()> {
     if !matches!(
         command,
-        "queue-next"
+        "capture"
+            | "capture-text"
+            | "pick-color"
+            | "queue-next"
             | "queue-back"
             | "favorite-1"
             | "favorite-2"

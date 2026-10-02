@@ -137,6 +137,7 @@ pub fn select_mime(types: &[String]) -> Option<String> {
         "text/uri-list",
         "image/png",
         "image/jpeg",
+        "image/webp",
         "text/plain;charset=utf-8",
         "text/plain;charset=UTF-8",
         "text/plain",

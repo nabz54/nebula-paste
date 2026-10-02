@@ -25,6 +25,7 @@ impl App {
     pub(super) fn ribbon_visible(&self) -> bool {
         self.is_popup()
             && !self.compact_popup()
+            && !self.media_open
             && !self.actions_open
             && !self.templates_open
             && !self.notes_open
@@ -56,7 +57,6 @@ impl App {
 
     fn ribbon_card<'a>(&self, clip: &'a Clip, index: usize, width: f32) -> Element<'a, Message> {
         let metadata = widget::row([])
-            .push(skin::icon(clip.kind.icon()).icon().size(12))
             .push(widget::text(model::age(clip.timestamp)).size(11))
             .push(widget::Space::new().width(Length::Fill))
             .push(
@@ -74,12 +74,32 @@ impl App {
             .spacing(5)
             .align_y(iced::Alignment::Center);
         let body = widget::column([])
-            .push(self.preview(clip, 132.0))
+            .push(
+                widget::container(widget::Space::new().height(3))
+                    .width(Length::Fill)
+                    .class(skin::type_rail(
+                        skin::TypeTint::clip(clip),
+                        self.settings.type_colors,
+                    )),
+            )
+            .push(skin::type_badge(
+                clip.kind.label(),
+                clip.kind.icon(),
+                skin::TypeTint::clip(clip),
+                self.settings.type_colors,
+            ))
+            .push(self.preview(clip, 108.0))
             .push(widget::container(metadata).padding([0, 4]))
-            .spacing(8);
+            // Rail + badge + preview + metadata must fit the 184 px shelf.
+            .spacing(5);
         let copy = widget::button::custom(body)
             .on_press(Message::ActivateClip(clip.id.clone()))
-            .class(skin::button(self.selected == index, 12.0, true))
+            .class(skin::type_button(
+                self.selected == index,
+                skin::TypeTint::clip(clip),
+                self.settings.type_colors,
+                false,
+            ))
             .padding(8)
             .width(width);
         // The preview is also available from the selected-item toolbar, so
@@ -261,6 +281,7 @@ impl App {
         };
         let selected = filtered.get(self.selected);
         let footer = widget::row([])
+            .push(widget::button::text(tr!("Capture…", "Capture…")).on_press(Message::MediaOpen))
             .push(
                 widget::button::text(tr!("Aperçu / actions", "Preview / actions"))
                     .on_press_maybe(selected.map(|c| Message::Detail(Some(c.id.clone())))),

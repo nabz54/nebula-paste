@@ -1,9 +1,11 @@
 mod action_ui;
 mod actions;
 mod app;
+mod capture;
 mod data_ui;
 mod demo;
 mod ipc;
+mod media_ui;
 mod note_ui;
 mod ocr;
 mod render;
@@ -28,7 +30,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mime = match image::guess_format(&bytes)? {
                 image::ImageFormat::Png => "image/png",
                 image::ImageFormat::Jpeg => "image/jpeg",
-                _ => return Err("Format PNG/JPEG requis".into()),
+                image::ImageFormat::WebP => "image/webp",
+                _ => return Err("Format PNG/JPEG/WebP requis".into()),
             };
             let clip = nebula_paste::model::Clip::new(mime.into(), bytes, 0)?;
             print!("{}", ocr::recognize(clip, &language)?);
@@ -68,6 +71,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ipc::action(&format!("favorite-{n}"))?;
             return Ok(());
         }
+        Some("--capture" | "--capture-text" | "--pick-color") => {
+            let command = std::env::args().nth(1).unwrap();
+            ipc::action(command.trim_start_matches("--"))?;
+            return Ok(());
+        }
         Some("--history") => {
             ipc::history()
                 .map_err(|e| format!("Ajoute d’abord Nebula Paste au panneau COSMIC : {e}"))?;
@@ -82,8 +90,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!(
                 "{}",
                 nebula_paste::tr!(
-                    "Nebula Paste\n  Sans option : lancer l’applet\n  --toggle : ouvrir/fermer l’applet déjà actif (raccourci COSMIC)\n  --history : ouvrir l’historique complet de l’applet\n  --preview : démonstration isolée\n  --render-preview fichier.png [full|detail|list|settings|collections|narrow|popup|ribbon|templates|templates-edit|templates-popup|templates-edit-popup|data|data-popup] [light|dark] : capture de démonstration\n  --ocr image.png [fra|eng|fra+eng] : OCR embarqué\n  --queue-next / --queue-back : file de copie\n  --copy-favorite 1..5 : copier un favori rapide\n  --version : version",
-                    "Nebula Paste\n  No option: start the applet\n  --toggle: open/close the running applet\n  --history: open the applet’s full history window\n  --preview: isolated demo\n  --render-preview file.png [full|detail|list|settings|collections|narrow|popup|ribbon|templates|templates-edit|templates-popup|templates-edit-popup|data|data-popup] [light|dark]: native widget screenshot\n  --ocr image.png [fra|eng|fra+eng]: embedded OCR\n  --queue-next / --queue-back: copy queue\n  --copy-favorite 1..5: copy a quick favorite\n  --version: version"
+                    "Nebula Paste\n  Sans option : lancer l’applet\n  --toggle : ouvrir/fermer l’applet déjà actif (raccourci COSMIC)\n  --history : ouvrir l’historique complet de l’applet\n  --preview : démonstration isolée\n  --render-preview fichier.png [full|detail|list|settings|collections|narrow|popup|ribbon|templates|templates-edit|templates-popup|templates-edit-popup|data|data-popup] [light|dark] : capture de démonstration\n  --ocr image.png [fra|eng|fra+eng] : OCR embarqué\n  --queue-next / --queue-back : file de copie\n  --copy-favorite 1..5 : copier un favori rapide\n  --capture / --capture-text / --pick-color : capture et pipette natives\n  --version : version",
+                    "Nebula Paste\n  No option: start the applet\n  --toggle: open/close the running applet\n  --history: open the applet’s full history window\n  --preview: isolated demo\n  --render-preview file.png [full|detail|list|settings|collections|narrow|popup|ribbon|templates|templates-edit|templates-popup|templates-edit-popup|data|data-popup] [light|dark]: native widget screenshot\n  --ocr image.png [fra|eng|fra+eng]: embedded OCR\n  --queue-next / --queue-back: copy queue\n  --copy-favorite 1..5: copy a quick favorite\n  --capture / --capture-text / --pick-color: native capture and color picker\n  --version: version"
                 )
             );
             return Ok(());

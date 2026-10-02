@@ -44,3 +44,7 @@ Notes persistantes, bibliothèque avec recherche commune, vues par collection, c
 ## Livraison 1.3 en préparation
 
 Actions de texte, assemblage ordonné, file de copie, favoris rapides et raccourcis internes configurables. Les raccourcis globaux utilisent des commandes à associer manuellement dans COSMIC. Le collage séquentiel automatique n’est pas annoncé : la file copie un élément à la fois, puis l’utilisateur colle avec Ctrl+V. [Validation 1.3](TESTING-1.3.md).
+
+## Livraison 1.4 en préparation
+
+Capture interactive, OCR éditable, pipette, atelier d’images et couleurs par type sont implémentés dans la PR #13. Validation native Fedora COSMIC requise : [guide](TESTING-1.4.md). Le prototype vidéo reste reporté, hors de cette bêta.

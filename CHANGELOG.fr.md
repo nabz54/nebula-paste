@@ -2,7 +2,16 @@
 
 [English](CHANGELOG.md)
 
-## 1.3.0-beta.1 — Actions et raccourcis (en préparation)
+## 1.4.0-beta.1 — Capture, images et couleurs — 2026-10-02
+
+- Capture interactive et pipette via les dialogues natifs du bureau ; import local en repli.
+- OCR embarqué avec résultat éditable avant copie ou création de note.
+- Atelier non destructif : recadrage, dimensions proportionnelles/libres, PNG/JPEG/WebP, aperçu, copie, historique et export sans écrasement.
+- Couleurs par type configurables, persistantes et adaptées aux thèmes clair/sombre.
+- Commandes COSMIC `--capture`, `--capture-text`, `--pick-color` ; annulation sans insertion dans l’historique.
+- Validation : [guide FR](docs/TESTING-1.4.md) / [English](docs/TESTING-1.4.en.md). Essais réels COSMIC encore requis.
+
+## 1.3.0-beta.1 — Actions et raccourcis — 2026-10-01
 
 - Transformations de texte avec aperçu : majuscules, minuscules, nettoyage des espaces et lignes vides ; originaux conservés.
 - Assemblage ordonné de copies textuelles et notes avec séparateur configurable ; copie ou création d’une note.

@@ -1,6 +1,6 @@
 # Nebula Paste 1.4 — capture, images and type colors
 
-Prepared version: **1.4.0-beta.1**, PR #13. Preparation is separate from merging and publishing.
+Version under test: **1.4.0-beta.1**. These checks complement automated tests before daily use.
 
 ## Workflow
 

@@ -1,6 +1,6 @@
 # Nebula Paste 1.4 — capture, images et couleurs
 
-Version préparée : **1.4.0-beta.1**, PR #13. La fusion et la publication sont distinctes de cette préparation.
+Version testée : **1.4.0-beta.1**. Ces vérifications complètent les tests automatisés avant une utilisation quotidienne.
 
 ## Parcours
 

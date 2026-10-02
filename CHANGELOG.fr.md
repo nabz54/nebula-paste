@@ -2,7 +2,7 @@
 
 [English](CHANGELOG.md)
 
-## 1.4.0-beta.1 — Capture, images et couleurs (en préparation)
+## 1.4.0-beta.1 — Capture, images et couleurs — 2026-10-02
 
 - Capture interactive et pipette via les dialogues natifs du bureau ; import local en repli.
 - OCR embarqué avec résultat éditable avant copie ou création de note.

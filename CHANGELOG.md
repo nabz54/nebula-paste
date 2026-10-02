@@ -2,7 +2,7 @@
 
 [Français](CHANGELOG.fr.md)
 
-## 1.4.0-beta.1 — Capture, images and colors (in preparation)
+## 1.4.0-beta.1 — Capture, images and colors — 2026-10-02
 
 - Interactive screenshot and color picker through native desktop dialogs; local-image import fallback.
 - Embedded OCR with editable output before copying or creating a note.

@@ -25,6 +25,7 @@ impl App {
     pub(super) fn ribbon_visible(&self) -> bool {
         self.is_popup()
             && !self.compact_popup()
+            && !self.media_open
             && !self.actions_open
             && !self.templates_open
             && !self.notes_open
@@ -280,6 +281,7 @@ impl App {
         };
         let selected = filtered.get(self.selected);
         let footer = widget::row([])
+            .push(widget::button::text(tr!("Capture…", "Capture…")).on_press(Message::MediaOpen))
             .push(
                 widget::button::text(tr!("Aperçu / actions", "Preview / actions"))
                     .on_press_maybe(selected.map(|c| Message::Detail(Some(c.id.clone())))),

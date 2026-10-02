@@ -1,12 +1,13 @@
 [package]
 name = "nebula-paste"
-version = "1.3.0-beta.1"
+version = "1.4.0-beta.1"
 edition = "2024"
 rust-version = "1.93"
 license = "MPL-2.0"
 description = "Un presse-papiers visuel natif pour le bureau COSMIC"
 
 [dependencies]
+ashpd = { version = "=0.12.3", default-features = false, features = ["tokio"] }
 # The exact libcosmic commit is pinned in Cargo.lock; build with --locked.
 # Share the same Git source as cosmic-panel so cargo vendor can deduplicate it.
 libcosmic = { git = "https://github.com/pop-os/libcosmic", default-features = false, features = ["applet", "tokio", "wayland", "multi-window", "x11", "xdg-portal"] }
@@ -19,7 +20,7 @@ sha2 = "0.10"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 base64 = "0.22"
-image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
 dirs = "6"
 tokio = { version = "1", features = ["rt-multi-thread", "time"] }
 

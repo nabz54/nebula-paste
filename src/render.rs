@@ -38,6 +38,31 @@ pub fn preview(path: &str) -> Result<(), Box<dyn std::error::Error>> {
         let _ = app.update(crate::app::Message::Collections(true));
     }
     let mode = std::env::args().nth(3).unwrap_or_default();
+    if mode.starts_with("media") {
+        let _ = app.update(crate::app::Message::MediaOpen);
+        if !mode.contains("home") {
+            let clip = if mode.contains("color") {
+                nebula_paste::imaging::color_clip([0.55, 0.4, 0.85])?
+            } else {
+                crate::demo::clips()
+                    .into_iter()
+                    .find(|c| c.kind == nebula_paste::model::Kind::Image)
+                    .unwrap()
+            };
+            let prepared = crate::media_ui::prepare(std::sync::Arc::new(clip))?;
+            let _ = app.update(crate::app::Message::Media(
+                crate::media_ui::Message::Loaded(Ok(Some(prepared)), false),
+            ));
+            if mode.contains("ocr") {
+                let _ = app.update(crate::app::Message::Media(
+                    crate::media_ui::Message::OcrDone(Ok(
+                        "Texte reconnu / Recognized text\nVérifie le résultat avant de copier."
+                            .into(),
+                    )),
+                ));
+            }
+        }
+    }
     if mode.starts_with("actions") {
         app.expand_demo();
         let parts = crate::demo::clips()

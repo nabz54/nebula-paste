@@ -1,3 +1,5 @@
+#[path = "media_app.rs"]
+mod media_app;
 #[path = "ribbon.rs"]
 mod ribbon;
 
@@ -62,6 +64,8 @@ pub struct App {
     clips: Vec<Clip>,
     collections: Vec<String>,
     collections_open: bool,
+    media_open: bool,
+    media: crate::media_ui::State,
     actions_open: bool,
     action_state: crate::action_ui::State,
     notes_open: bool,
@@ -124,6 +128,9 @@ struct Undo {
 pub enum Message {
     Toggle,
     ReloadAppearance,
+    MediaOpen,
+    MediaFromClip(String),
+    Media(crate::media_ui::Message),
     ActionsOpen,
     Action(crate::action_ui::Message),
     ActionsLoad(Vec<nebula_paste::text_actions::Part>),
@@ -308,7 +315,8 @@ impl App {
         self.refresh();
     }
     fn sidebar_width(&self) -> f32 {
-        if !self.actions_open
+        if !self.media_open
+            && !self.actions_open
             && !self.notes_open
             && !self.workspace_open
             && !self.is_popup()
@@ -327,6 +335,7 @@ impl App {
     }
     fn index_next(&mut self) -> Task<cosmic::Action<Message>> {
         if !self.settings.ocr_indexing
+            || self.media.busy
             || self.ocr_busy
             || self.index_busy.is_some()
             || (self.monitor.paused() && !self.demo)
@@ -1327,6 +1336,8 @@ impl cosmic::Application for App {
             clips: vec![],
             collections: vec![],
             collections_open: false,
+            media_open: false,
+            media: Default::default(),
             actions_open: false,
             action_state: Default::default(),
             notes_open: false,
@@ -1543,6 +1554,10 @@ Notes remain available after clearing history."
         }
         layout = layout.push(
             widget::flex_row(vec![
+                widget::button::text(tr!("Capture", "Capture"))
+                    .class(skin::button(self.media_open, 8.0, false))
+                    .on_press(Message::MediaOpen)
+                    .into(),
                 widget::button::text(tr!("Actions", "Actions"))
                     .class(skin::button(self.actions_open, 8.0, false))
                     .on_press(Message::ActionsOpen)
@@ -1552,7 +1567,8 @@ Notes remain available after clearing history."
                         !self.templates_open
                             && !self.notes_open
                             && !self.workspace_open
-                            && !self.actions_open,
+                            && !self.actions_open
+                            && !self.media_open,
                         8.0,
                         false,
                     ))
@@ -1647,6 +1663,9 @@ Notes remain available after clearing history."
         if self.collections_open {
             layout = layout.push(self.view_collections());
         }
+        if self.media_open {
+            layout = layout.push(self.media.view().map(Message::Media));
+        }
         if self.actions_open {
             layout = layout.push(
                 self.action_state
@@ -1685,6 +1704,7 @@ Notes remain available after clearing history."
             && !self.notes_open
             && !self.workspace_open
             && !self.actions_open
+            && !self.media_open
         {
             if let Some(clip) = self
                 .detail
@@ -1784,6 +1804,10 @@ Notes remain available after clearing history."
                     );
                 }
                 if clip.kind == Kind::Image {
+                    layout = layout.push(
+                        widget::button::standard(tr!("Retoucher / capturer…", "Image workbench…"))
+                            .on_press(Message::MediaFromClip(clip.id.clone())),
+                    );
                     if let Some(text) = self.image_index.get(&clip.id) {
                         layout = layout
                             .push(
@@ -2274,6 +2298,17 @@ Notes remain available after clearing history."
         Subscription::batch(subscriptions)
     }
     fn update(&mut self, message: Message) -> Task<cosmic::Action<Message>> {
+        if matches!(
+            &message,
+            Message::ActionsOpen
+                | Message::Templates(_)
+                | Message::Notes(_)
+                | Message::Workspace(_)
+                | Message::Settings(true)
+                | Message::Collections(true)
+        ) {
+            self.media_open = false;
+        }
         let was_ribbon = self.ribbon_visible();
         let reset_shelf = matches!(
             &message,
@@ -2286,7 +2321,8 @@ Notes remain available after clearing history."
                 | Message::ShowFilters
                 | Message::Viewport(_)
         );
-        if (self.actions_open
+        if (self.media_open
+            || self.actions_open
             || self.templates_open
             || self.notes_open
             || self.workspace_open
@@ -2307,6 +2343,9 @@ Notes remain available after clearing history."
             return Task::none();
         }
         match message {
+            Message::MediaOpen => return self.open_media(),
+            Message::MediaFromClip(id) => return self.media_from_clip(id),
+            Message::Media(msg) => return self.update_media(msg),
             Message::Data(msg) => {
                 use crate::data_ui::Message as D;
                 match msg {
@@ -2414,6 +2453,7 @@ Notes remain available after clearing history."
                     return self.update(Message::FocusSearch);
                 }
                 if !ignored
+                    || self.media_open
                     || self.notes_open
                     || self.templates_open
                     || self.settings_open
@@ -3027,6 +3067,9 @@ Notes remain available after clearing history."
                 return widget::text_input::focus(self.search_id.clone());
             }
             Message::Escape => {
+                if self.media_open {
+                    return self.update(Message::Workspace(true));
+                }
                 if self.actions_open {
                     return self.update(Message::Workspace(true));
                 }
@@ -3257,7 +3300,7 @@ Notes remain available after clearing history."
             }
             Message::OpenHistory => {
                 self.actions_open = false;
-                self.workspace_open = true;
+                self.workspace_open = !self.media_open;
                 self.notes_open = false;
                 self.templates_open = false;
                 self.settings_open = false;
@@ -3422,6 +3465,21 @@ Notes remain available after clearing history."
                     match &bytes[..count] {
                         b"toggle" => return self.update(Message::Toggle),
                         b"history" => return self.update(Message::OpenHistory),
+                        b"capture" => {
+                            return self.update(Message::Media(crate::media_ui::Message::Capture(
+                                crate::capture::Capture::Image,
+                            )));
+                        }
+                        b"capture-text" => {
+                            return self.update(Message::Media(crate::media_ui::Message::Capture(
+                                crate::capture::Capture::Text,
+                            )));
+                        }
+                        b"pick-color" => {
+                            return self.update(Message::Media(crate::media_ui::Message::Capture(
+                                crate::capture::Capture::Color,
+                            )));
+                        }
                         b"queue-next" => {
                             return self.update(Message::Action(crate::action_ui::Message::Next));
                         }

@@ -36,6 +36,11 @@ jobs:
           target/debug/nebula-paste --render-preview ui-previews/compact-light.png popup light
           target/debug/nebula-paste --render-preview ui-previews/workspace-vivid-light.png workspace light vivid
           target/debug/nebula-paste --render-preview ui-previews/colors-settings.png settings dark
+          target/debug/nebula-paste --render-preview ui-previews/media-dark.png media dark
+          target/debug/nebula-paste --render-preview ui-previews/media-popup-light.png media-popup light
+          target/debug/nebula-paste --render-preview ui-previews/media-ocr-dark.png media-ocr dark
+          target/debug/nebula-paste --render-preview ui-previews/media-color-light.png media-color light
+          target/debug/nebula-paste --render-preview ui-previews/media-home-popup.png media-home-popup dark
           python3 - <<'PYTHON'
           import pathlib, struct
           for path in pathlib.Path('ui-previews').glob('ribbon-*.png'):

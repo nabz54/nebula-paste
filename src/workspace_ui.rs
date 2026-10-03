@@ -713,7 +713,59 @@ impl State {
                 )),
         );
         if width < 600.0 {
-            widget::column([]).push(side).push(body).spacing(12).into()
+            let scopes = [
+                tr!("Tout", "All"),
+                tr!("Historique", "History"),
+                tr!("Notes", "Notes"),
+                tr!("Modèles", "Templates"),
+                tr!("Favoris", "Favorites"),
+            ]
+            .into_iter()
+            .enumerate()
+            .map(|(i, label)| {
+                widget::button::text(label)
+                    .class(crate::skin::button(
+                        self.scope == i as u8 && self.collection.is_empty(),
+                        8.0,
+                        false,
+                    ))
+                    .on_press(Message::Scope(i as u8))
+                    .into()
+            })
+            .collect();
+            let mut collections = widget::row([]).spacing(4);
+            for (i, c) in self.collections.iter().enumerate() {
+                collections = collections.push(
+                    widget::row([])
+                        .push(
+                            widget::button::text(c)
+                                .class(crate::skin::button(self.collection == *c, 8.0, false))
+                                .on_press(Message::Collection(c.clone())),
+                        )
+                        .push(
+                            widget::button::text("↑")
+                                .on_press_maybe((i > 0).then(|| Message::Order(c.clone(), true))),
+                        )
+                        .push(
+                            widget::button::text("↓").on_press_maybe(
+                                (i + 1 < self.collections.len())
+                                    .then(|| Message::Order(c.clone(), false)),
+                            ),
+                        ),
+                );
+            }
+            collections = collections
+                .push(widget::button::text(tr!("Gérer…", "Manage…")).on_press(Message::Manage));
+            widget::column([])
+                .push(widget::flex_row(scopes).spacing(4))
+                .push(widget::scrollable(collections).direction(
+                    cosmic::iced::widget::scrollable::Direction::Horizontal(
+                        cosmic::iced::widget::scrollable::Scrollbar::default(),
+                    ),
+                ))
+                .push(body)
+                .spacing(8)
+                .into()
         } else {
             widget::row([])
                 .spacing(16)

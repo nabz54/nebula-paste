@@ -230,7 +230,7 @@ impl App {
         if let Some(store) = &self.store {
             let _ = store.create_collection("Work");
             for c in &self.clips {
-                let _ = store.category(&c.id, "Work");
+                let _ = store.category(&c.id, if rules { "" } else { "Work" });
             }
             for name in ["À faire / To do", "En cours / Doing", "Terminé / Done"] {
                 let _ = store.save_column("Work", None, name);

@@ -161,7 +161,8 @@ impl State {
             }
             Message::EnableCleanup => {
                 if let Some((p, rows)) = &self.cleanup {
-                    let current = s.unused_preview(p, nebula_paste::model::now())?;
+                    let now = nebula_paste::model::now();
+                    let current = s.unused_preview(p, now)?;
                     if &current != rows {
                         self.cleanup = None;
                         return Err(tr!(
@@ -171,7 +172,7 @@ impl State {
                         .into());
                     }
                     s.save_unused_policy(p)?;
-                    s.expire_unused(nebula_paste::model::now())?;
+                    s.expire_unused(now)?;
                     self.cleanup = None;
                     self.notice = tr!(
                         "Nettoyage automatique activé. Suppression définitive des copies expirées.",

@@ -30,6 +30,59 @@ pub fn swatch(color: Color) -> theme::Container<'static> {
 pub fn button(selected: bool, radius: f32, card: bool) -> theme::Button {
     styled_button(selected, radius, card, None)
 }
+/// Type filters remain colored when inactive; selection strengthens their fill.
+pub fn filter_button(kind: Option<Kind>, selected: bool, mode: TypeColors) -> theme::Button {
+    let Some(kind) = kind.filter(|_| mode != TypeColors::Off) else {
+        return button(selected, 8.0, false);
+    };
+    use widget::button::Catalog;
+    let decorate = move |mut style: widget::button::Style, theme: &cosmic::Theme, focus: bool| {
+        let tint = TypeTint::Clip(kind, None).color();
+        let base: Color = theme.cosmic().bg_color().into();
+        let weight = if selected {
+            0.85
+        } else if mode == TypeColors::Vivid {
+            0.40
+        } else {
+            0.24
+        };
+        let mut bg = blend(base, tint, weight);
+        bg.a = 1.0;
+        let fg = readable(tint, bg);
+        style.background = Some(bg.into());
+        style.text_color = Some(fg);
+        style.icon_color = Some(fg);
+        if selected || focus {
+            style.border_width = 2.0;
+            style.border_color = readable(tint, bg);
+        }
+        style
+    };
+    theme::Button::Custom {
+        active: Box::new(move |focus, theme| {
+            decorate(
+                theme.active(focus, false, &theme::Button::Standard),
+                theme,
+                focus,
+            )
+        }),
+        hovered: Box::new(move |focus, theme| {
+            decorate(
+                theme.hovered(focus, false, &theme::Button::Standard),
+                theme,
+                focus,
+            )
+        }),
+        pressed: Box::new(move |focus, theme| {
+            decorate(
+                theme.pressed(focus, false, &theme::Button::Standard),
+                theme,
+                focus,
+            )
+        }),
+        disabled: Box::new(move |theme| theme.disabled(&theme::Button::Standard)),
+    }
+}
 pub fn type_button(
     selected: bool,
     tint: TypeTint,

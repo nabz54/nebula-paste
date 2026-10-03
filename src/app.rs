@@ -1921,7 +1921,11 @@ Notes remain available after clearing history."
                     for &kind in chunk {
                         filters = filters.push(
                             widget::button::text(kind.map_or(tr!("Tout", "All"), Kind::label))
-                                .class(skin::button(self.kind == kind, 7.0, false))
+                                .class(skin::filter_button(
+                                    kind,
+                                    self.kind == kind,
+                                    self.settings.type_colors,
+                                ))
                                 .on_press(Message::Filter(kind)),
                         );
                     }

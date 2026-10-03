@@ -84,6 +84,10 @@ pub fn preview(path: &str) -> Result<(), Box<dyn std::error::Error>> {
             ));
         }
     }
+    if mode.starts_with("board") || mode.starts_with("rules") {
+        app.expand_demo();
+        app.demo_organization(mode.starts_with("rules"));
+    }
     if mode.starts_with("notes") {
         app.expand_demo();
         let _ = app.update(crate::app::Message::Notes(true));

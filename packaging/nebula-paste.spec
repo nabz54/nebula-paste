@@ -1,8 +1,8 @@
-%global crate_version 1.4.0-beta.1
+%global crate_version 1.5.0-beta.1
 %global debug_package %{nil}
 
 Name:           nebula-paste
-Version:        1.4.0~beta.1
+Version:        1.5.0~beta.1
 Release:        1%{?dist}
 Summary:        Local clipboard history applet for COSMIC
 License:        MPL-2.0 AND Apache-2.0 AND BSD-2-Clause AND MIT
@@ -59,6 +59,9 @@ bash scripts/check-embedded-ocr.sh target/release/nebula-paste
 %{_datadir}/icons/hicolor/scalable/apps/io.github.nebulapaste.NebulaPaste-symbolic.svg
 
 %changelog
+* Sat Oct 03 2026 Nebula Paste maintainers - 1.5.0~beta.1-1
+- Collection boards, local rules, unused expiration and colored filters
+
 * Fri Oct 02 2026 Nebula Paste maintainers - 1.4.0~beta.1-1
 - Native capture, picker, editable OCR, image workbench and type colors
 

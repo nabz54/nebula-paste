@@ -48,3 +48,7 @@ Text actions, ordered assembly, copy queue, quick favorites and configurable int
 ## 1.4 delivery in preparation
 
 Interactive capture, editable OCR, color picker, image workbench and type colors are implemented in PR #13. Native Fedora COSMIC validation remains required: [guide](TESTING-1.4.en.md). Video preview is deferred and excluded from this beta.
+
+## 1.5 delivery in preparation
+
+Collection boards, local rules with preview/undo, expiration by use and colored filters are bundled in PR #14. Board movement uses buttons; cross-column drag-and-drop is deferred. [Validation and limits](TESTING-1.5.en.md).

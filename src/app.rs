@@ -97,6 +97,8 @@ pub struct App {
     connected: bool,
     clear_confirm: bool,
     copying: bool,
+    usage_pending: Option<String>,
+    cleanup_checked: Instant,
     template_copy: bool,
     search_id: iced::widget::Id,
     shelf_id: iced::widget::Id,
@@ -220,6 +222,47 @@ pub enum Message {
 }
 
 impl App {
+    pub(crate) fn demo_organization(&mut self, rules: bool) {
+        use cosmic::Application;
+        if !self.demo {
+            return;
+        }
+        if let Some(store) = &self.store {
+            let _ = store.create_collection("Work");
+            for c in &self.clips {
+                let _ = store.category(&c.id, if rules { "" } else { "Work" });
+            }
+            for name in ["À faire / To do", "En cours / Doing", "Terminé / Done"] {
+                let _ = store.save_column("Work", None, name);
+            }
+            if let Ok(columns) = store.board_columns("Work") {
+                for (i, c) in self.clips.iter().enumerate() {
+                    let _ = store.board_move("Work", 0, &c.id, Some(columns[i % columns.len()].id));
+                }
+            }
+            let _ = store.set_board_enabled("Work", !rules);
+        }
+        self.refresh();
+        let _ = self.update(Message::Workspace(true));
+        let _ = self.update(Message::WorkspaceEvent(
+            crate::workspace_ui::Message::Collection("Work".into()),
+        ));
+        if rules {
+            use crate::organize_ui::Message as O;
+            for m in [
+                O::Toggle,
+                O::Text("system76.com".into()),
+                O::Destination("Work".into()),
+                O::Save,
+                O::Preview,
+            ] {
+                let _ = self.update(Message::WorkspaceEvent(
+                    crate::workspace_ui::Message::Automation(m),
+                ));
+            }
+        }
+    }
+
     /// Register popups with libcosmic so native blur, corners and theme updates
     /// are applied, just as for the COSMIC calendar. Raw iced popup creation
     /// bypasses this registration and leaves the translucent background sharp.
@@ -598,6 +641,11 @@ impl App {
         self.clear_confirm = false;
     }
     fn refresh(&mut self) {
+        if let Some(store) = &self.store {
+            if let Err(e) = store.expire_unused(model::now()) {
+                self.status = e;
+            }
+        }
         // La rétention s’applique avant le chargement : rien de périmé n’est décodé.
         if let Some(store) = &self.store
             && self.settings.retention_days > 0
@@ -700,6 +748,7 @@ impl App {
             return Task::none();
         }
         if let Some(clip) = self.clips.iter().find(|c| c.id == id).cloned() {
+            self.usage_pending = Some(id.to_owned());
             self.copying = true;
             self.status = tr!("Copie…", "Copying…").into();
             return Task::perform(
@@ -723,6 +772,7 @@ impl App {
         if self.copying {
             return Task::none();
         }
+        self.usage_pending = Some(clip.id.clone());
         self.copying = true;
         self.action_state.busy = true;
         Task::perform(
@@ -854,6 +904,7 @@ impl App {
             model::now(),
         ) {
             Ok(plain) => {
+                self.usage_pending = Some(id.to_owned());
                 self.copying = true;
                 self.status = tr!("Copie en texte brut…", "Copying as plain text…").into();
                 Task::perform(
@@ -1369,6 +1420,8 @@ impl cosmic::Application for App {
             connected: false,
             clear_confirm: false,
             copying: false,
+            usage_pending: None,
+            cleanup_checked: Instant::now(),
             template_copy: false,
             search_id: iced::widget::Id::unique(),
             shelf_id: iced::widget::Id::unique(),
@@ -1921,7 +1974,11 @@ Notes remain available after clearing history."
                     for &kind in chunk {
                         filters = filters.push(
                             widget::button::text(kind.map_or(tr!("Tout", "All"), Kind::label))
-                                .class(skin::button(self.kind == kind, 7.0, false))
+                                .class(skin::filter_button(
+                                    kind,
+                                    self.kind == kind,
+                                    self.settings.type_colors,
+                                ))
                                 .on_press(Message::Filter(kind)),
                         );
                     }
@@ -2563,6 +2620,13 @@ Notes remain available after clearing history."
                 }
             }
             Message::ActionCopied(result, queue) => {
+                if let Some(id) = self.usage_pending.take() {
+                    if result.is_ok() {
+                        if let Some(store) = &self.store {
+                            let _ = store.mark_used(&id, model::now());
+                        }
+                    }
+                }
                 self.copying = false;
                 self.action_state.busy = false;
                 if queue {
@@ -2695,7 +2759,10 @@ Notes remain available after clearing history."
                 let Some(store) = &self.store else {
                     return Task::none();
                 };
-                let changed = matches!(&msg, W::Move | W::Delete | W::Undo | W::Order(_, _));
+                let changed = matches!(
+                    &msg,
+                    W::Move | W::Delete | W::Undo | W::Order(_, _) | W::Automation(_)
+                );
                 match self.workspace.update(msg, store) {
                     Err(e) => self.workspace.notice = e,
                     Ok(E::Activate(id)) => match self.settings.actions.clicks[2] {
@@ -3405,6 +3472,20 @@ Notes remain available after clearing history."
             }
             Message::Tick => {
                 let now = Instant::now();
+                if !self.demo
+                    && !self.copying
+                    && !self.dragging
+                    && now.duration_since(self.cleanup_checked).as_secs() >= 60
+                {
+                    self.cleanup_checked = now;
+                    if let Some(store) = &self.store {
+                        match store.expire_unused(model::now()) {
+                            Ok(n) if n > 0 => self.refresh(),
+                            Err(e) => self.status = e,
+                            _ => {}
+                        }
+                    }
+                }
                 if self.flash.as_ref().is_some_and(|(_, until)| now >= *until) {
                     self.flash = None;
                 }
@@ -3432,6 +3513,9 @@ Notes remain available after clearing history."
                             if let Some(store) = &mut self.store {
                                 match store.insert(&clip) {
                                     Ok(()) => {
+                                        if let Err(e) = store.classify_new(&clip.id) {
+                                            self.status = e;
+                                        }
                                         self.status = tr!("Historique local · Clique sur une carte pour la copier", "Local history · click a card to copy it").into();
                                         if !self.clips.iter().any(|c| c.id == clip.id) {
                                             self.clips.push(clip);
@@ -3549,26 +3633,35 @@ Notes remain available after clearing history."
                     return self.copy_plain(&id);
                 }
             }
-            Message::Copied(result) => match result {
-                Ok(()) => {
-                    self.status = tr!(
-                        "Copié · Colle avec Ctrl+V dans ton application",
-                        "Copied · press Ctrl+V in your application"
-                    )
-                    .into();
-                    self.flash(tr!("Copié dans le presse-papiers", "Copied to clipboard"));
-                    // La fermeture attend que la confirmation ait été visible.
-                    return Task::perform(
-                        async { tokio::time::sleep(Duration::from_millis(450)).await },
-                        |()| cosmic::Action::App(Message::FinishCopy),
-                    );
+            Message::Copied(result) => {
+                if let Some(id) = self.usage_pending.take() {
+                    if result.is_ok() {
+                        if let Some(s) = &self.store {
+                            let _ = s.mark_used(&id, model::now());
+                        }
+                    }
                 }
-                Err(e) => {
-                    self.copying = false;
-                    self.template_copy = false;
-                    self.status = tr_format!("Échec de la copie : {e}", "Copy failed: {e}");
+                match result {
+                    Ok(()) => {
+                        self.status = tr!(
+                            "Copié · Colle avec Ctrl+V dans ton application",
+                            "Copied · press Ctrl+V in your application"
+                        )
+                        .into();
+                        self.flash(tr!("Copié dans le presse-papiers", "Copied to clipboard"));
+                        // La fermeture attend que la confirmation ait été visible.
+                        return Task::perform(
+                            async { tokio::time::sleep(Duration::from_millis(450)).await },
+                            |()| cosmic::Action::App(Message::FinishCopy),
+                        );
+                    }
+                    Err(e) => {
+                        self.copying = false;
+                        self.template_copy = false;
+                        self.status = tr_format!("Échec de la copie : {e}", "Copy failed: {e}");
+                    }
                 }
-            },
+            }
             Message::FinishCopy => {
                 self.templates.clear_values();
                 let template_copy = std::mem::take(&mut self.template_copy);

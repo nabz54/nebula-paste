@@ -224,7 +224,11 @@ impl App {
                     kind.map_or(tr!("Tout", "All"), Kind::label),
                     self.ribbon_count(kind)
                 ))
-                .class(skin::button(self.kind == kind, 8.0, false))
+                .class(skin::filter_button(
+                    kind,
+                    self.kind == kind,
+                    self.settings.type_colors,
+                ))
                 .on_press(Message::Filter(kind)),
             );
         }

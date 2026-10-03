@@ -2,6 +2,15 @@
 
 [Français](CHANGELOG.fr.md)
 
+## 1.5.0-beta.1 — Boards and local automation — 2026-10-03
+
+- Persistent collection boards with editable/reorderable columns and card movement buttons.
+- Local type/text filing rules, preview, explicit conflict handling and transactional batch undo.
+- Opt-in expiration by last use with preview, favorite protection and collection exclusions.
+- Colored filter pills in all clipboard views, with stronger selected states and light/dark contrast.
+- Additive database migration with a private pre-1.5 backup; history restoration disables unused expiration.
+- Validation and limits: [English guide](docs/TESTING-1.5.en.md).
+
 ## 1.4.0-beta.1 — Capture, images and colors — 2026-10-02
 
 - Interactive screenshot and color picker through native desktop dialogs; local-image import fallback.

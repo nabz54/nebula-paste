@@ -1,4 +1,6 @@
-//! Shared collection browser. Editing remains in the dedicated note/template editors.
+#[path = "board_ui.rs"]
+mod board_ui;
+// Shared collection browser. Editing remains in the dedicated note/template editors.
 use cosmic::{Element, iced::Length, widget};
 use nebula_paste::{
     model::{self, Clip},
@@ -57,6 +59,15 @@ impl Entry {
 }
 #[derive(Debug, Clone)]
 pub enum Message {
+    Automation(crate::organize_ui::Message),
+    Board,
+    ColumnName(String),
+    ColumnEdit(Option<i64>),
+    ColumnSave,
+    ColumnAskDelete(Option<i64>),
+    ColumnDelete(i64),
+    ColumnOrder(i64, bool),
+    BoardMove(u8, String, Option<i64>),
     Activate(String),
     Actions,
     Search(String),
@@ -91,6 +102,13 @@ pub enum Effect {
     Manage,
 }
 pub struct State {
+    automation: crate::organize_ui::State,
+    board: bool,
+    columns: Vec<nebula_paste::organize::Column>,
+    assignments: HashMap<(u8, String), i64>,
+    column_name: String,
+    column_edit: Option<i64>,
+    column_delete: Option<i64>,
     entries: Vec<Entry>,
     collections: Vec<String>,
     pub search_id: cosmic::iced::widget::Id,
@@ -108,6 +126,13 @@ pub struct State {
 impl Default for State {
     fn default() -> Self {
         Self {
+            automation: Default::default(),
+            board: false,
+            columns: vec![],
+            assignments: HashMap::new(),
+            column_name: String::new(),
+            column_edit: None,
+            column_delete: None,
             entries: vec![],
             collections: vec![],
             search_id: cosmic::iced::widget::Id::unique(),
@@ -181,6 +206,10 @@ impl State {
             self.destination.clear();
         }
         self.cards = store.collection_cards(&self.collection);
+        self.board = !self.collection.is_empty() && store.board_enabled(&self.collection);
+        self.columns = store.board_columns(&self.collection)?;
+        self.assignments = store.board_assignments(&self.collection)?;
+        self.automation.refresh(store)?;
         self.selected
             .retain(|key| self.entries.iter().any(|e| e.key().as_ref() == Some(key)));
         self.page = self.page.min(self.filtered().len().saturating_sub(1) / 40);
@@ -214,6 +243,48 @@ impl State {
     }
     pub fn update(&mut self, message: Message, store: &Store) -> Result<Effect, String> {
         match message {
+            Message::Automation(m) => {
+                if let Err(e) = self.automation.update(m, store) {
+                    self.automation.notice = e;
+                }
+            }
+            Message::Board => {
+                if !self.collection.is_empty() {
+                    store.set_board_enabled(&self.collection, !self.board)?;
+                    self.board = !self.board;
+                }
+            }
+            Message::ColumnName(s) => {
+                if s.chars().count() <= 40 {
+                    self.column_name = s;
+                }
+            }
+            Message::ColumnEdit(id) => {
+                self.column_edit = id;
+                self.column_name = self
+                    .columns
+                    .iter()
+                    .find(|c| Some(c.id) == id)
+                    .map(|c| c.name.clone())
+                    .unwrap_or_default();
+            }
+            Message::ColumnSave => {
+                store.save_column(&self.collection, self.column_edit, &self.column_name)?;
+                self.column_name.clear();
+                self.column_edit = None;
+            }
+            Message::ColumnAskDelete(id) => self.column_delete = id,
+            Message::ColumnDelete(id) => {
+                if self.column_delete == Some(id) {
+                    store.delete_column(id)?;
+                    self.column_delete = None;
+                    self.column_edit = None;
+                }
+            }
+            Message::ColumnOrder(id, up) => store.order_column(&self.collection, id, up)?,
+            Message::BoardMove(kind, id, column) => {
+                store.board_move(&self.collection, kind, &id, column)?
+            }
             Message::Activate(id) => return Ok(Effect::Activate(id)),
             Message::Actions => {
                 let entries: Vec<_> = self
@@ -244,17 +315,25 @@ impl State {
             }
             Message::Scope(s) => {
                 self.scope = s;
+                self.column_edit = None;
+                self.column_delete = None;
+                self.column_name.clear();
                 self.collection.clear();
                 self.cards = store.collection_cards("");
                 self.reset();
             }
             Message::Collection(s) => {
+                self.column_edit = None;
+                self.column_delete = None;
+                self.column_name.clear();
                 self.collection = s;
                 self.scope = 0;
                 self.cards = store.collection_cards(&self.collection);
                 self.reset();
             }
             Message::Layout => {
+                store.set_board_enabled(&self.collection, false)?;
+                self.board = false;
                 let cards = !self.cards;
                 store.set_collection_cards(&self.collection, cards)?;
                 self.cards = cards;
@@ -316,6 +395,9 @@ impl State {
             Message::Convert(id) => return Ok(Effect::Convert(id)),
             Message::Manage => return Ok(Effect::Manage),
         }
+        self.board = !self.collection.is_empty() && store.board_enabled(&self.collection);
+        self.columns = store.board_columns(&self.collection)?;
+        self.assignments = store.board_assignments(&self.collection)?;
         Ok(Effect::None)
     }
     pub fn view<'a>(
@@ -366,6 +448,10 @@ impl State {
         }
         side = side.push(widget::button::text(tr!("Gérer…", "Manage…")).on_press(Message::Manage));
         let header = widget::flex_row(vec![
+            widget::button::text(tr!("Vue : tableau", "View: board"))
+                .class(crate::skin::button(self.board, 8.0, false))
+                .on_press_maybe((!self.collection.is_empty()).then_some(Message::Board))
+                .into(),
             widget::button::suggested(tr!("Nouvelle note", "New note"))
                 .on_press(Message::NewNote)
                 .into(),
@@ -394,6 +480,11 @@ impl State {
             )
             .id(self.search_id.clone())
             .on_input(Message::Search),
+        );
+        body = body.push(
+            self.automation
+                .view(&self.collections)
+                .map(Message::Automation),
         );
         let filtered = self.filtered();
         body = body.push(
@@ -592,7 +683,9 @@ impl State {
                 .into(),
             );
         }
-        if self.cards {
+        if self.board {
+            body = body.push(self.board_view(colors));
+        } else if self.cards {
             body = body.push(widget::flex_row(cards).spacing(10));
         } else {
             body = body.push(widget::column(cards).spacing(6));
@@ -620,7 +713,59 @@ impl State {
                 )),
         );
         if width < 600.0 {
-            widget::column([]).push(side).push(body).spacing(12).into()
+            let scopes = [
+                tr!("Tout", "All"),
+                tr!("Historique", "History"),
+                tr!("Notes", "Notes"),
+                tr!("Modèles", "Templates"),
+                tr!("Favoris", "Favorites"),
+            ]
+            .into_iter()
+            .enumerate()
+            .map(|(i, label)| {
+                widget::button::text(label)
+                    .class(crate::skin::button(
+                        self.scope == i as u8 && self.collection.is_empty(),
+                        8.0,
+                        false,
+                    ))
+                    .on_press(Message::Scope(i as u8))
+                    .into()
+            })
+            .collect();
+            let mut collections = widget::row([]).spacing(4);
+            for (i, c) in self.collections.iter().enumerate() {
+                collections = collections.push(
+                    widget::row([])
+                        .push(
+                            widget::button::text(c)
+                                .class(crate::skin::button(self.collection == *c, 8.0, false))
+                                .on_press(Message::Collection(c.clone())),
+                        )
+                        .push(
+                            widget::button::text("↑")
+                                .on_press_maybe((i > 0).then(|| Message::Order(c.clone(), true))),
+                        )
+                        .push(
+                            widget::button::text("↓").on_press_maybe(
+                                (i + 1 < self.collections.len())
+                                    .then(|| Message::Order(c.clone(), false)),
+                            ),
+                        ),
+                );
+            }
+            collections = collections
+                .push(widget::button::text(tr!("Gérer…", "Manage…")).on_press(Message::Manage));
+            widget::column([])
+                .push(widget::flex_row(scopes).spacing(4))
+                .push(widget::scrollable(collections).direction(
+                    cosmic::iced::widget::scrollable::Direction::Horizontal(
+                        cosmic::iced::widget::scrollable::Scrollbar::default(),
+                    ),
+                ))
+                .push(body)
+                .spacing(8)
+                .into()
         } else {
             widget::row([])
                 .spacing(16)

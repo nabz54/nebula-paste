@@ -281,6 +281,8 @@ impl Store {
             return Err("Restore exceeds capacity; no data changed".into());
         }
         result.bytes = size;
+        tx.execute("UPDATE unused_policy SET days=0", [])
+            .map_err(|e| e.to_string())?;
         tx.commit().map_err(|e| e.to_string())?;
         Ok(result)
     }

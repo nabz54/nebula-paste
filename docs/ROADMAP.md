@@ -48,3 +48,7 @@ Actions de texte, assemblage ordonné, file de copie, favoris rapides et raccour
 ## Livraison 1.4 en préparation
 
 Capture interactive, OCR éditable, pipette, atelier d’images et couleurs par type sont implémentés dans la PR #13. Validation native Fedora COSMIC requise : [guide](TESTING-1.4.md). Le prototype vidéo reste reporté, hors de cette bêta.
+
+## Livraison 1.5 en préparation
+
+Tableaux par collection, règles locales avec aperçu et annulation, expiration selon utilisation et filtres colorés sont regroupés dans la PR #14. Déplacements Kanban par boutons ; glisser-déposer intercolonnes reporté. [Validation et limites](TESTING-1.5.md).

@@ -8,6 +8,7 @@ mod ipc;
 mod media_ui;
 mod note_ui;
 mod ocr;
+mod organize_ui;
 mod render;
 mod skin;
 mod template_ui;

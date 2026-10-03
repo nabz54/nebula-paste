@@ -41,7 +41,7 @@ impl State {
         let mut row = widget::row([]).spacing(10);
         for (index, (id, name)) in lanes.iter().enumerate() {
             let in_lane =
-                |e: &&Entry| self.assignments.get(&(e.kind, e.id.clone())).copied() == *id;
+                |e: &&&Entry| self.assignments.get(&(e.kind, e.id.clone())).copied() == *id;
             let count = filtered.iter().filter(in_lane).count();
             let mut lane = widget::column([])
                 .spacing(8)

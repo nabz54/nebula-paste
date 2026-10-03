@@ -213,11 +213,11 @@ impl Store {
             .collect()
     }
     pub fn save_rule(&self, rule: &Rule) -> Result<(), String> {
-        if rule.contains.trim().is_empty()
+        if (rule.contains.trim().is_empty() && rule.kind.is_none())
             || rule.contains.len() > 256
             || rule.contains.contains('\0')
         {
-            return Err("Rule text: 1–256 bytes".into());
+            return Err("Choose a type or matching text (maximum 256 bytes)".into());
         }
         if rule.id == 0 && self.rules()?.len() >= 64 {
             return Err("64 rules maximum".into());

@@ -39,6 +39,7 @@ pub struct State {
     cleanup: Option<(Policy, Vec<(String, String)>)>,
     pub notice: String,
     policy: Policy,
+    cleanup_titles: std::collections::HashMap<String, String>,
 }
 impl State {
     pub fn refresh(&mut self, s: &Store) -> Result<(), String> {
@@ -155,6 +156,7 @@ impl State {
                     return Err(tr!("Choisis un délai positif.", "Choose a positive delay.").into());
                 }
                 let rows = s.unused_preview(&p, nebula_paste::model::now())?;
+                self.cleanup_titles = s.load()?.into_iter().map(|c| (c.id, c.title)).collect();
                 self.cleanup = Some((p, rows));
             }
             Message::EnableCleanup => {
@@ -252,8 +254,9 @@ impl State {
             )
             .push(
                 widget::button::standard(tr!("Enregistrer la règle", "Save rule")).on_press_maybe(
-                    (!self.text.trim().is_empty() && collections.contains(&self.destination))
-                        .then_some(Message::Save),
+                    ((!self.text.trim().is_empty() || self.kind.is_some())
+                        && collections.contains(&self.destination))
+                    .then_some(Message::Save),
                 ),
             )
             .push(
@@ -314,7 +317,12 @@ impl State {
                 b = b.push(
                     widget::text(format!(
                         "{} · {}",
-                        id.chars().take(12).collect::<String>(),
+                        self.cleanup_titles
+                            .get(id)
+                            .unwrap_or(id)
+                            .chars()
+                            .take(70)
+                            .collect::<String>(),
                         c
                     ))
                     .size(11),

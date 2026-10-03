@@ -40,6 +40,8 @@ pub enum Undo {
         clips: Vec<Clip>,
         notes: Vec<Note>,
         ocr: Vec<(String, String, String)>,
+        board: Vec<(u8, String, i64)>,
+        usage: Vec<(String, i64)>,
     },
 }
 fn error() -> String {
@@ -139,6 +141,27 @@ impl Store {
             .into_iter()
             .filter(|n| keys.contains(&Key::Note(n.id.clone())))
             .collect();
+        let mut board = Vec::new();
+        let mut usage = Vec::new();
+        for k in keys {
+            let kind = if matches!(k, Key::Clip(_)) { 0u8 } else { 1u8 };
+            if let Ok(column) = tx.query_row(
+                "SELECT column_id FROM board_items WHERE kind=?1 AND item=?2",
+                params![kind, k.id()],
+                |r| r.get::<_, i64>(0),
+            ) {
+                board.push((kind, k.id().to_owned(), column));
+            }
+            if kind == 0 {
+                if let Ok(used) =
+                    tx.query_row("SELECT used FROM clip_usage WHERE id=?1", [k.id()], |r| {
+                        r.get::<_, i64>(0)
+                    })
+                {
+                    usage.push((k.id().to_owned(), used));
+                }
+            }
+        }
         let mut ocr = Vec::new();
         for c in &clips {
             let mut statement = tx
@@ -157,7 +180,13 @@ impl Store {
                 .map_err(|e| e.to_string())?;
         }
         tx.commit().map_err(|e| e.to_string())?;
-        Ok(Undo::Deleted { clips, notes, ocr })
+        Ok(Undo::Deleted {
+            clips,
+            notes,
+            ocr,
+            board,
+            usage,
+        })
     }
     pub fn undo_items(&self, undo: &Undo) -> Result<(), String> {
         let tx = self
@@ -194,7 +223,13 @@ impl Store {
                     }
                 }
             }
-            Undo::Deleted { clips, notes, ocr } => {
+            Undo::Deleted {
+                clips,
+                notes,
+                ocr,
+                board,
+                usage,
+            } => {
                 let existing = self.load()?;
                 let existing_notes = self.notes()?;
                 if existing.len() + clips.len() > MAX_ITEMS
@@ -227,6 +262,13 @@ impl Store {
                 }
                 for n in notes {
                     tx.execute("INSERT INTO notes(id,title,body,collection,created_at,updated_at) VALUES(?1,?2,?3,?4,?5,?6)",params![n.id,n.title,n.body,collection(&n.collection),n.created_at,n.updated_at]).map_err(|e|e.to_string())?;
+                }
+                for (kind, id, column) in board {
+                    tx.execute("INSERT INTO board_items(kind,item,column_id) SELECT ?1,?2,id FROM board_columns WHERE id=?3",params![kind,id,column]).map_err(|e|e.to_string())?;
+                }
+                for (id, used) in usage {
+                    tx.execute("INSERT INTO clip_usage VALUES(?1,?2)", params![id, used])
+                        .map_err(|e| e.to_string())?;
                 }
                 for (id, lang, text) in ocr {
                     tx.execute(

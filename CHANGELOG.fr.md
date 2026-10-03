@@ -2,6 +2,15 @@
 
 [English](CHANGELOG.md)
 
+## 1.5.0-beta.1 — Tableaux et automatisation locale (en préparation)
+
+- Tableaux par collection, colonnes éditables/réordonnables et déplacement par boutons.
+- Règles locales par type/texte, aperçu, conflits explicites et annulation transactionnelle des lots.
+- Expiration facultative selon l’utilisation, aperçu, protection des favoris et exclusions par collection.
+- Filtres colorés dans toutes les vues, sélection renforcée et contraste clair/sombre.
+- Migration additive avec sauvegarde privée pré-1.5 ; restauration d’historique désactivant l’expiration par usage.
+- Validation et limites : [guide français](docs/TESTING-1.5.md).
+
 ## 1.4.0-beta.1 — Capture, images et couleurs — 2026-10-02
 
 - Capture interactive et pipette via les dialogues natifs du bureau ; import local en repli.

@@ -98,6 +98,7 @@ pub struct App {
     clear_confirm: bool,
     copying: bool,
     usage_pending: Option<String>,
+    cleanup_checked: Instant,
     template_copy: bool,
     search_id: iced::widget::Id,
     shelf_id: iced::widget::Id,
@@ -221,6 +222,46 @@ pub enum Message {
 }
 
 impl App {
+    pub(crate) fn demo_organization(&mut self, rules: bool) {
+        if !self.demo {
+            return;
+        }
+        if let Some(store) = &self.store {
+            let _ = store.create_collection("Work");
+            for c in &self.clips {
+                let _ = store.category(&c.id, "Work");
+            }
+            for name in ["À faire / To do", "En cours / Doing", "Terminé / Done"] {
+                let _ = store.save_column("Work", None, name);
+            }
+            if let Ok(columns) = store.board_columns("Work") {
+                for (i, c) in self.clips.iter().enumerate() {
+                    let _ = store.board_move("Work", 0, &c.id, Some(columns[i % columns.len()].id));
+                }
+            }
+            let _ = store.set_board_enabled("Work", !rules);
+        }
+        self.refresh();
+        let _ = self.update(Message::Workspace(true));
+        let _ = self.update(Message::WorkspaceEvent(
+            crate::workspace_ui::Message::Collection("Work".into()),
+        ));
+        if rules {
+            use crate::organize_ui::Message as O;
+            for m in [
+                O::Toggle,
+                O::Text("system76.com".into()),
+                O::Destination("Work".into()),
+                O::Save,
+                O::Preview,
+            ] {
+                let _ = self.update(Message::WorkspaceEvent(
+                    crate::workspace_ui::Message::Automation(m),
+                ));
+            }
+        }
+    }
+
     /// Register popups with libcosmic so native blur, corners and theme updates
     /// are applied, just as for the COSMIC calendar. Raw iced popup creation
     /// bypasses this registration and leaves the translucent background sharp.
@@ -730,6 +771,7 @@ impl App {
         if self.copying {
             return Task::none();
         }
+        self.usage_pending = Some(clip.id.clone());
         self.copying = true;
         self.action_state.busy = true;
         Task::perform(
@@ -861,6 +903,7 @@ impl App {
             model::now(),
         ) {
             Ok(plain) => {
+                self.usage_pending = Some(id.to_owned());
                 self.copying = true;
                 self.status = tr!("Copie en texte brut…", "Copying as plain text…").into();
                 Task::perform(
@@ -1377,6 +1420,7 @@ impl cosmic::Application for App {
             clear_confirm: false,
             copying: false,
             usage_pending: None,
+            cleanup_checked: Instant::now(),
             template_copy: false,
             search_id: iced::widget::Id::unique(),
             shelf_id: iced::widget::Id::unique(),
@@ -2575,6 +2619,13 @@ Notes remain available after clearing history."
                 }
             }
             Message::ActionCopied(result, queue) => {
+                if let Some(id) = self.usage_pending.take() {
+                    if result.is_ok() {
+                        if let Some(store) = &self.store {
+                            let _ = store.mark_used(&id, model::now());
+                        }
+                    }
+                }
                 self.copying = false;
                 self.action_state.busy = false;
                 if queue {
@@ -3420,6 +3471,20 @@ Notes remain available after clearing history."
             }
             Message::Tick => {
                 let now = Instant::now();
+                if !self.demo
+                    && !self.copying
+                    && !self.dragging
+                    && now.duration_since(self.cleanup_checked).as_secs() >= 60
+                {
+                    self.cleanup_checked = now;
+                    if let Some(store) = &self.store {
+                        match store.expire_unused(model::now()) {
+                            Ok(n) if n > 0 => self.refresh(),
+                            Err(e) => self.status = e,
+                            _ => {}
+                        }
+                    }
+                }
                 if self.flash.as_ref().is_some_and(|(_, until)| now >= *until) {
                     self.flash = None;
                 }

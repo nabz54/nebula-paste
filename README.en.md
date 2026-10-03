@@ -1,5 +1,7 @@
 # Nebula Paste — COSMIC applet
 
+**1.5 in preparation:** boards, local rules, expiration by use and colored filters — [test guide](docs/TESTING-1.5.en.md).
+
 **1.4.0-beta.1 — capture, editable OCR, color picker, image workbench and type colors.** Beta for Fedora COSMIC. [Download](https://github.com/nabz54/nebula-paste/releases/tag/v1.4.0-beta.1) · [Test guide](docs/TESTING-1.4.en.md).
 
 [Français](README.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)

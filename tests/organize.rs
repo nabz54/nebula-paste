@@ -124,3 +124,48 @@ fn migration_backs_up_legacy_database_once() {
     drop(s);
     assert!(Store::open(&p).is_ok());
 }
+#[test]
+fn bulk_undo_restores_board_and_usage_metadata() {
+    use nebula_paste::workspace::Key;
+    let mut s = Store::in_memory().unwrap();
+    let c = sample(&mut s, "undo", 1);
+    s.category(&c.id, "A").unwrap();
+    s.save_column("A", None, "Lane").unwrap();
+    let col = s.board_columns("A").unwrap()[0].id;
+    s.board_move("A", 0, &c.id, Some(col)).unwrap();
+    s.mark_used(&c.id, 200000).unwrap();
+    let u = s
+        .delete_items(&std::collections::HashSet::from([Key::Clip(c.id.clone())]))
+        .unwrap();
+    s.undo_items(&u).unwrap();
+    assert_eq!(s.board_assignments("A").unwrap()[&(0, c.id)], col);
+    assert!(
+        s.unused_preview(
+            &Policy {
+                days: 1,
+                excluded: vec![]
+            },
+            200000
+        )
+        .unwrap()
+        .is_empty()
+    );
+}
+#[test]
+fn history_restore_disables_expiration() {
+    use nebula_paste::backup::{Archive, Conflict};
+    let mut s = Store::in_memory().unwrap();
+    sample(&mut s, "old", 1);
+    let d = tempfile::tempdir().unwrap();
+    let p = d.path().join("history.json");
+    s.history_archive().unwrap().export_new(&p).unwrap();
+    let a = Archive::read(&p).unwrap();
+    s.save_unused_policy(&Policy {
+        days: 1,
+        excluded: vec![],
+    })
+    .unwrap();
+    s.restore_history(&a, Conflict::KeepLocal, true).unwrap();
+    assert_eq!(s.unused_policy().unwrap().days, 0);
+    assert_eq!(s.expire_unused(200000).unwrap(), 0);
+}

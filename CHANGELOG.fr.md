@@ -2,7 +2,7 @@
 
 [English](CHANGELOG.md)
 
-## 1.5.0-beta.1 — Tableaux et automatisation locale (en préparation)
+## 1.5.0-beta.1 — Tableaux et automatisation locale — 2026-10-03
 
 - Tableaux par collection, colonnes éditables/réordonnables et déplacement par boutons.
 - Règles locales par type/texte, aperçu, conflits explicites et annulation transactionnelle des lots.

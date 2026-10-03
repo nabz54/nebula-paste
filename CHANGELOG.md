@@ -2,7 +2,7 @@
 
 [Français](CHANGELOG.fr.md)
 
-## 1.5.0-beta.1 — Boards and local automation (in preparation)
+## 1.5.0-beta.1 — Boards and local automation — 2026-10-03
 
 - Persistent collection boards with editable/reorderable columns and card movement buttons.
 - Local type/text filing rules, preview, explicit conflict handling and transactional batch undo.

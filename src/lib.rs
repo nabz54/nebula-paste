@@ -15,3 +15,5 @@ pub mod workspace;
 pub mod text_actions;
 
 pub mod imaging;
+
+pub mod organize;

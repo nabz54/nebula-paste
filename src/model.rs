@@ -6,7 +6,7 @@ pub const MAX_CLIP_BYTES: usize = 16 * 1024 * 1024;
 pub const MAX_ITEMS: usize = 500;
 pub const MAX_HISTORY_BYTES: usize = 128 * 1024 * 1024;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Kind {
     Text,
     Link,

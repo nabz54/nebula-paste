@@ -28,6 +28,17 @@ impl Store {
             .map_err(|e| e.to_string())?;
         fs::set_permissions(path, fs::Permissions::from_mode(0o600)).map_err(|e| e.to_string())?;
         let connection = Connection::open(path).map_err(|e| e.to_string())?;
+        let legacy: bool = connection.query_row("SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE name='clips') AND NOT EXISTS(SELECT 1 FROM sqlite_master WHERE name='board_columns')", [], |r| r.get(0)).map_err(|e|e.to_string())?;
+        if legacy {
+            let backup = path.with_extension("pre-1.5.sqlite3");
+            if !backup.exists() {
+                connection
+                    .execute("VACUUM INTO ?1", [backup.to_string_lossy().as_ref()])
+                    .map_err(|e| e.to_string())?;
+                fs::set_permissions(&backup, fs::Permissions::from_mode(0o600))
+                    .map_err(|e| e.to_string())?;
+            }
+        }
         Self::initialize(connection)
     }
     pub fn in_memory() -> Result<Self, String> {
@@ -53,6 +64,7 @@ impl Store {
         crate::templates::initialize(&connection)?;
         crate::notes::initialize(&connection)?;
         crate::workspace::initialize(&connection)?;
+        crate::organize::initialize(&connection)?;
         Ok(Self { connection })
     }
     pub fn load(&self) -> Result<Vec<Clip>, String> {

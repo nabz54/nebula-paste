@@ -223,6 +223,7 @@ pub enum Message {
 
 impl App {
     pub(crate) fn demo_organization(&mut self, rules: bool) {
+        use cosmic::Application;
         if !self.demo {
             return;
         }

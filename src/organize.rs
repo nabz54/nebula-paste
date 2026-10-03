@@ -98,11 +98,11 @@ impl Store {
                 .map_err(err)?
                 != 1
             {
-                return Err("Column changed".into());
+                return Err(crate::tr!("La colonne a changé.", "Column changed.").into());
             }
         } else {
             if self.board_columns(collection)?.len() >= 12 {
-                return Err("12 columns maximum".into());
+                return Err(crate::tr!("12 colonnes maximum.", "12 columns maximum.").into());
             }
             self.connection.execute("INSERT INTO board_columns(collection,name,position) VALUES(?1,?2,COALESCE((SELECT MAX(position)+1 FROM board_columns WHERE collection=?1),0))",params![collection,name]).map_err(err)?;
         }
@@ -119,7 +119,7 @@ impl Store {
         let i = cols
             .iter()
             .position(|c| c.id == id)
-            .ok_or("Column missing")?;
+            .ok_or(crate::tr!("Colonne introuvable.", "Column missing."))?;
         let j = if up {
             i.saturating_sub(1)
         } else {
@@ -153,7 +153,7 @@ impl Store {
             0 => ("clips", "category"),
             1 => ("notes", "collection"),
             2 => ("templates", "collection"),
-            _ => return Err("Invalid item type".into()),
+            _ => return Err(crate::tr!("Type d’élément invalide.", "Invalid item type.").into()),
         };
         let tx = self.connection.unchecked_transaction().map_err(err)?;
         let current: String = tx
@@ -164,7 +164,11 @@ impl Store {
             )
             .map_err(err)?;
         if current != collection || collection.is_empty() {
-            return Err("Item moved: refresh board".into());
+            return Err(crate::tr!(
+                "Élément déplacé : actualise le tableau.",
+                "Item moved: refresh board."
+            )
+            .into());
         }
         if let Some(column) = column {
             let owner: String = tx
@@ -175,7 +179,11 @@ impl Store {
                 )
                 .map_err(err)?;
             if owner != collection {
-                return Err("Column belongs to another collection".into());
+                return Err(crate::tr!(
+                    "La colonne appartient à une autre collection.",
+                    "Column belongs to another collection."
+                )
+                .into());
             }
             tx.execute("INSERT INTO board_items VALUES(?1,?2,?3) ON CONFLICT(kind,item) DO UPDATE SET column_id=excluded.column_id",params![kind,item,column]).map_err(err)?;
         } else {
@@ -217,10 +225,14 @@ impl Store {
             || rule.contains.len() > 256
             || rule.contains.contains('\0')
         {
-            return Err("Choose a type or matching text (maximum 256 bytes)".into());
+            return Err(crate::tr!(
+                "Choisis un type ou un texte recherché (256 octets maximum).",
+                "Choose a type or matching text (maximum 256 bytes)."
+            )
+            .into());
         }
         if rule.id == 0 && self.rules()?.len() >= 64 {
-            return Err("64 rules maximum".into());
+            return Err(crate::tr!("64 règles maximum.", "64 rules maximum.").into());
         }
         let kind = rule
             .kind
@@ -228,7 +240,7 @@ impl Store {
             .transpose()
             .map_err(err)?;
         if rule.id==0 {self.connection.execute("INSERT INTO organize_rules(kind,contains,destination,enabled) VALUES(?1,?2,?3,?4)",params![kind,rule.contains.trim(),rule.destination,rule.enabled]).map_err(err)?;}
-        else if self.connection.execute("UPDATE organize_rules SET kind=?1,contains=?2,destination=?3,enabled=?4 WHERE id=?5",params![kind,rule.contains.trim(),rule.destination,rule.enabled,rule.id]).map_err(err)?!=1 {return Err("Rule missing".into());}
+        else if self.connection.execute("UPDATE organize_rules SET kind=?1,contains=?2,destination=?3,enabled=?4 WHERE id=?5",params![kind,rule.contains.trim(),rule.destination,rule.enabled,rule.id]).map_err(err)?!=1 {return Err(crate::tr!("Règle introuvable.", "Rule missing.").into());}
         Ok(())
     }
     pub fn delete_rule(&self, id: i64) -> Result<(), String> {
@@ -272,7 +284,11 @@ impl Store {
     pub fn apply_rules(&self, preview: &[Match]) -> Result<RuleUndo, String> {
         let tx = self.connection.unchecked_transaction().map_err(err)?;
         if self.rule_preview()? != preview {
-            return Err("Preview changed: refresh before applying".into());
+            return Err(crate::tr!(
+                "L’aperçu a changé : actualise avant application.",
+                "Preview changed: refresh before applying."
+            )
+            .into());
         }
         let mut changes = Vec::new();
         for m in preview {
@@ -294,7 +310,11 @@ impl Store {
         let tx = self.connection.unchecked_transaction().map_err(err)?;
         for (id, before, after) in &undo.changes {
             if !before.is_empty() && !self.collections()?.contains(before) {
-                return Err("Original collection missing".into());
+                return Err(crate::tr!(
+                    "Collection d’origine introuvable.",
+                    "Original collection missing."
+                )
+                .into());
             }
             if tx
                 .execute(
@@ -304,7 +324,11 @@ impl Store {
                 .map_err(err)?
                 != 1
             {
-                return Err("Item changed: undo refused".into());
+                return Err(crate::tr!(
+                    "Élément modifié : annulation refusée.",
+                    "Item changed: undo refused."
+                )
+                .into());
             }
         }
         tx.commit().map_err(err)
@@ -344,7 +368,11 @@ impl Store {
     }
     pub fn save_unused_policy(&self, p: &Policy) -> Result<(), String> {
         if p.days > 3650 || p.excluded.len() > 128 {
-            return Err("Invalid expiration policy".into());
+            return Err(crate::tr!(
+                "Paramètres d’expiration invalides.",
+                "Invalid expiration policy."
+            )
+            .into());
         }
         let tx = self.connection.unchecked_transaction().map_err(err)?;
         tx.execute("INSERT INTO unused_policy VALUES(1,?1) ON CONFLICT(singleton) DO UPDATE SET days=excluded.days",[p.days]).map_err(err)?;
@@ -361,7 +389,9 @@ impl Store {
             return Ok(vec![]);
         }
         if p.days > 3650 {
-            return Err("Invalid expiration days".into());
+            return Err(
+                crate::tr!("Délai d’expiration invalide.", "Invalid expiration days.").into(),
+            );
         }
         let cutoff = now.saturating_sub(i64::from(p.days) * 86400);
         let excluded: HashSet<_> = p.excluded.iter().collect();
